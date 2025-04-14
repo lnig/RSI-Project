@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://example.org/flightreservationsystem"
+           targetNamespace="http://example.org/flightreservationsystem"
+           elementFormDefault="qualified">
+
+    <!-- City -->
+    <xs:complexType name="city">
+        <xs:sequence>
+            <xs:element name="id" type="xs:int"/>
+            <xs:element name="cityName" type="xs:string"/>
+            <xs:element name="country" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Flight -->
+    <xs:complexType name="flight">
+        <xs:sequence>
+            <xs:element name="id" type="xs:int"/>
+            <xs:element name="flightCode" type="xs:string"/>
+            <xs:element name="departureCity" type="tns:city"/>
+            <xs:element name="arrivalCity" type="tns:city"/>
+            <xs:element name="departureDatetime" type="xs:dateTime"/>
+            <xs:element name="arrivalDatetime" type="xs:dateTime"/>
+            <xs:element name="totalSeats" type="xs:int"/>
+            <xs:element name="availableSeats" type="xs:int"/>
+            <xs:element name="basePrice" type="xs:decimal"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Reservation -->
+    <xs:complexType name="reservation">
+        <xs:sequence>
+            <xs:element name="id" type="xs:int"/>
+            <xs:element name="reservationCode" type="xs:string"/>
+            <xs:element name="passengerFirstname" type="xs:string"/>
+            <xs:element name="passengerLastname" type="xs:string"/>
+            <xs:element name="passengerEmail" type="xs:string"/>
+            <xs:element name="seatsReserved" type="xs:int"/>
+            <xs:element name="totalPrice" type="xs:decimal"/>
+            <xs:element name="reservationDate" type="xs:dateTime"/>
+            <xs:element name="flight" type="tns:flight"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="getAllFlightsRequest">
+        <xs:complexType>
+            <xs:sequence>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getAllFlightsResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="flights" type="tns:flight" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Requests and Responses -->
+    <xs:element name="getFlightRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="id" type="xs:int"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getFlightResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="flight" type="tns:flight"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="searchFlightsRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="departureCityId" type="xs:int"/>
+                <xs:element name="arrivalCityId" type="xs:int"/>
+                <xs:element name="departureDate" type="xs:dateTime"/>
+                <xs:element name="returnDate" type="xs:dateTime" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="searchFlightsResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="flights" type="tns:flight" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="createReservationRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="flightId" type="xs:int"/>
+                <xs:element name="passengerFirstname" type="xs:string"/>
+                <xs:element name="passengerLastname" type="xs:string"/>
+                <xs:element name="passengerEmail" type="xs:string"/>
+                <xs:element name="seatsReserved" type="xs:int"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="createReservationResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="reservation" type="tns:reservation"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="cancelReservationRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="reservationCode" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="cancelReservationResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="success" type="xs:boolean"/>
+                <xs:element name="message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
