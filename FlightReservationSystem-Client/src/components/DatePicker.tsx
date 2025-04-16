@@ -50,7 +50,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
     xl: 'px-2 py-2 text-lg h-11',
   };
 
-  const currentBorderColor = isActive || isFocused ? borderColorFocusActive : borderColor;
+  const currentBorderColor = isActive || isFocused || isOpen ? borderColorFocusActive : borderColor;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -73,18 +73,19 @@ const DatePicker: React.FC<DatePickerProps> = ({
     setIsOpen(false);
   };
 
+  const currentTextColor = selectedDate ? textColor : '#8E94A0';
+
   return (
     <div className="relative w-fit" ref={wrapperRef}>
       <div
         className={`
           border rounded cursor-pointer flex justify-between items-center
           ${width} ${sizeClasses[size]}
-          placeholder:text-[#8E94A0]
         `}
         style={{
           borderColor: currentBorderColor,
           background: backgroundColor,
-          color: textColor,
+          color: currentTextColor,
         }}
         onClick={() => setIsOpen(!isOpen)}
         onFocus={() => setIsFocused(true)}

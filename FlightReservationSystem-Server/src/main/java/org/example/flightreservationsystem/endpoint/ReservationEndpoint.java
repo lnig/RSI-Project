@@ -33,8 +33,7 @@ public class ReservationEndpoint {
         reservation.setPassengerLastname(request.getPassengerLastname());
         reservation.setPassengerEmail(request.getPassengerEmail());
         reservation.setSeatsReserved(request.getSeatsReserved());
-
-        // Create flight reference
+        
         Flight flight = new Flight();
         flight.setId(request.getFlightId());
         reservation.setFlight(flight);

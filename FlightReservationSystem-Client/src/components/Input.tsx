@@ -2,9 +2,9 @@ import { Eye } from 'lucide-react'
 import React, { useState, useRef } from 'react'
 
 type InputProps = { 
-  type?: 'text' | 'password'
-  value: string | null
-  onValueChange: (value: string) => void
+  type?: 'text' | 'password' | 'number'
+  value: string | number | null
+  onValueChange: (value: string | number) => void
   placeholder?: string
   size?: 'xs' | 's' | 'm' | 'l' | 'xl'
   width?: string
@@ -41,6 +41,25 @@ const Input: React.FC<InputProps> = ({
     xl: 'px-2 py-2 text-lg h-11',
   }
 
+  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value
+    
+    if (type === 'number') {
+      // Dla typu number, konwertujemy na number jeśli to możliwe
+      if (newValue === '') {
+        onValueChange('')
+      } else if (/^[0-9]*\.?[0-9]*$/.test(newValue)) {
+        // Konwertujemy na number tylko jeśli wartość jest pełną liczbą
+        const numValue = newValue.includes('.') ? parseFloat(newValue) : parseInt(newValue)
+        onValueChange(isNaN(numValue) ? '' : numValue)
+      }
+    } else {
+      onValueChange(newValue)
+    }
+  }
+
+  const displayValue = value === null ? '' : value.toString()
+
   const currentBorderColor = isActive || isFocused ? borderColorFocusActive : borderColor
 
   return (
@@ -74,10 +93,12 @@ const Input: React.FC<InputProps> = ({
         <input
           ref={inputRef}
           type={type === 'password' && !showPassword ? 'password' : 'text'}
-          value={value || ''}
-          onChange={(e) => onValueChange(e.target.value)}
+          value={displayValue}
+          onChange={handleValueChange}
           placeholder={placeholder}
           className="bg-transparent focus:outline-none px-2 w-full"
+          inputMode={type === 'number' ? 'numeric' : 'text'}
+          pattern={type === 'number' ? '[0-9]*' : undefined}
         />
       </div>
       {type === 'password' && (

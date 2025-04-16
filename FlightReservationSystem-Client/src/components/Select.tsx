@@ -89,6 +89,7 @@ const Select: React.FC<SelectProps> = ({
     if (inputRef.current) {
       inputRef.current.focus()
     }
+    setIsOpen(false)
   }
 
   const handleInputFocus = () => {

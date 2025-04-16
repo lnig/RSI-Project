@@ -8,6 +8,8 @@ import Select from './components/Select';
 import Button from './components/Button';
 import RangeSlider from './components/Slider';
 import Checkbox from './components/Checkbox';
+import Label from './components/Label';
+import Input from './components/Input';
 
 function App() {
   const [selectedDateDeparture, setSelectedDateDeparture] = useState<Date | null>(null);
@@ -30,6 +32,13 @@ function App() {
     between4h8h: false,
     above8h: false
   });
+  enum operationTypes {
+    BOOK_FLIGHT = 'Book a flight',
+    CHECK_RESERVATION = 'Check reservation'
+  }
+  const [operationType, setOperationType] = useState<string>(operationTypes.BOOK_FLIGHT);
+  const [seatsValue, setSeatsValue] = useState<number>(1);
+  const [reservationCode, setReservationCode] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFlights = async () => {
@@ -220,72 +229,153 @@ function App() {
     setYearArrival(year);
   }
 
+  const handleOperationTypeChange = (operationType: operationTypes) => {
+    setOperationType(operationType);
+  }
+
+  const handleSeatsValueChange = (newSeatsValue: string | number) => {
+    setSeatsValue(Number(newSeatsValue));
+  }
+
+  const handleReservationCodeChange = (reservationCode: string | number) => {
+    setReservationCode(String(reservationCode));
+  }
+
+  const handleCheckReservation = () => {
+
+  }
+
   return (
-    <main className='flex flex-col w-full gap-8 py-6'>
-      <div className='w-full h-48 bg-[#F8FBF8] px-6 flex flex-col'>
-        <p className='font-semibold text-2xl'>Search a flight</p>
-        
-        <div className='w-full flex gap-4 justify-between'>
-          <div className='flex gap-4 w-full'>
-            <Select 
-              options={cityOptions}
-              value={departureCity?.id.toString() || null}
-              onValueChange={(value) => {
-                const city = cities.find(c => c.id.toString() === value);
-                setDepartureCity(city || null);
-              }}
-              placeholder='Departure city'
-              Icon={PlaneTakeoff}
-              width='w-72'
+    <main className='flex flex-col w-full gap-8 pt-6'>
+      <div className='w-full h-32 bg-[#F8FBF8] px-6 flex flex-col'>
+        <div className='flex items-center justify-between'>
+          <p className='font-semibold text-2xl text-[#313642]'>
+            {operationType === operationTypes.BOOK_FLIGHT ? 'Search a flight' : 'Check reservation'}
+          </p>
+          <div className='flex items-center'>
+            <Button
+              size="s"
+              text="Book a flight"
+              type={operationType === operationTypes.BOOK_FLIGHT ? 'primary' : 'tertiary'}
+              onClick={() => handleOperationTypeChange(operationTypes.BOOK_FLIGHT)}
             />
-
-            <Select 
-              options={cityOptions}
-              value={arrivalCity?.id.toString() || null}
-              onValueChange={(value) => {
-                const city = cities.find(c => c.id.toString() === value);
-                setArrivalCity(city || null);
-              }}
-              placeholder='Arrival city'
-              Icon={PlaneLanding}
-              width='w-72'
-            />
-
-            <DatePicker
-              size='m'
-              Icon={Calendar1}
-              selectedDate={selectedDateDeparture}
-              onDateSelect={setSelectedDateDeparture}
-              currentMonthIndex={monthDeparture}
-              onMonthChange={handleMonthChangeDeparture}
-              baseYear={yearDeparture}
-              onYearChange={handleYearChangeDeparture}
-              placeholder='Departure date'
-            />
-
-            <DatePicker
-              size='m'
-              Icon={Calendar1}
-              selectedDate={selectedDateArrival}
-              onDateSelect={setSelectedDateArrival}
-              currentMonthIndex={monthArrival}
-              onMonthChange={handleMonthChangeArrival}
-              baseYear={yearArrival}
-              onYearChange={handleYearChangeArrival}
-              placeholder='Arrival date'
-            />
-
-            <Button 
-              text='Search'
-              Icon={Search}
-              width='w-48'
-              size='m'
-              onClick={handleSearch}
+            <Button
+              size="s"
+              text="Check reservation"
+              type={operationType === operationTypes.CHECK_RESERVATION ? 'primary' : 'tertiary'}
+              onClick={() => handleOperationTypeChange(operationTypes.CHECK_RESERVATION)}
             />
           </div>
         </div>
+        
+        {operationType === operationTypes.BOOK_FLIGHT ? (
+          <div className='w-full flex gap-4 justify-between mt-4'>
+            <div className='flex gap-4 w-full'>
+              <div className='flex flex-col gap-1'>
+                <Label text='Departure city  (*)' fontSize={14} weight={500} fontColor='#565D6D'/>
+                <Select 
+                  options={cityOptions}
+                  value={departureCity?.id.toString() || null}
+                  onValueChange={(value) => {
+                    const city = cities.find(c => c.id.toString() === value);
+                    setDepartureCity(city || null);
+                  }}
+                  placeholder='Select departure city'
+                  Icon={PlaneTakeoff}
+                  width='w-72'
+                />
+              </div>
+              
+              <div className='flex flex-col gap-1'>
+                <Label text='Arrival city  (*)' fontSize={14} weight={500} fontColor='#565D6D'/>
+                <Select 
+                  options={cityOptions}
+                  value={arrivalCity?.id.toString() || null}
+                  onValueChange={(value) => {
+                    const city = cities.find(c => c.id.toString() === value);
+                    setArrivalCity(city || null);
+                  }}
+                  placeholder='Select arrival city'
+                  Icon={PlaneLanding}
+                  width='w-72'
+                />
+              </div>
+              
+              <div className='flex flex-col gap-1'>
+                <Label text='Departure date (*)' fontSize={14} weight={500} fontColor='#565D6D'/>
+                <DatePicker
+                  size='m'
+                  Icon={Calendar1}
+                  selectedDate={selectedDateDeparture}
+                  onDateSelect={setSelectedDateDeparture}
+                  currentMonthIndex={monthDeparture}
+                  onMonthChange={handleMonthChangeDeparture}
+                  baseYear={yearDeparture}
+                  onYearChange={handleYearChangeDeparture}
+                  placeholder='Select departure date'
+                />
+              </div>
+
+              <div className='flex flex-col gap-1'>
+                <Label text='Arrival date' fontSize={14} weight={500} fontColor='#565D6D'/>
+                <DatePicker
+                  size='m'
+                  Icon={Calendar1}
+                  selectedDate={selectedDateArrival}
+                  onDateSelect={setSelectedDateArrival}
+                  currentMonthIndex={monthArrival}
+                  onMonthChange={handleMonthChangeArrival}
+                  baseYear={yearArrival}
+                  onYearChange={handleYearChangeArrival}
+                  placeholder='Select arrival date'
+                />
+              </div>
+
+              <div className='flex flex-col gap-1'>
+                <Label text='Seats' fontSize={14} weight={500} fontColor='#565D6D'/>
+                <Input 
+                  type='number' 
+                  value={seatsValue}
+                  onValueChange={handleSeatsValueChange}
+                  placeholder="Enter number of seats"
+                />
+              </div>
+            </div>
+            <div className='mt-6'>
+              <Button 
+                text='Search a Flight'
+                Icon={Search}
+                width='w-64'
+                size='m'
+                onClick={handleSearch}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className='flex items-center gap-4 mt-4'>
+            <div className='flex flex-col gap-1'>
+              <Label text='Reservation code' fontSize={14} weight={500} fontColor='#565D6D'/>
+              <Input 
+                type='text' 
+                value={reservationCode}
+                onValueChange={handleReservationCodeChange}
+                placeholder="Enter reservation code"
+              />
+            </div>
+            <div className='mt-6'>
+              <Button 
+                text='Check Reservation'
+                Icon={Search}
+                width='w-64'
+                size='m'
+                onClick={handleCheckReservation}
+              />
+            </div>
+          </div>
+        )}
       </div>
       
+      {operationType === operationTypes.BOOK_FLIGHT ? (
       <div className='flex gap-8 pl-6'>
         <div className='w-80 max-w-80 min-w-80 h-full'>
           <p className='text-[#16191E] text-lg font-medium mb-2'>Sort by</p>
@@ -414,7 +504,7 @@ function App() {
           </div>
         </div>
 
-        <div className='flex flex-wrap gap-4 w-fit h-[calc(100vh-290px)] overflow-y-auto pr-6'>
+        <div className='flex flex-wrap gap-4 w-full h-[calc(100vh-200px)] overflow-y-auto pr-6 content-start custom-scrollbar'>
           {filteredFlights.length > 0 ? (
             filteredFlights.map((flight) => (
               <FlightCard key={flight.id} {...flight} />
@@ -426,6 +516,21 @@ function App() {
           )}
         </div>
       </div>
+      ) : (
+      <div className='flex flex-wrap gap-8 px-6'>
+        {filteredFlights.length > 0 ? (
+          filteredFlights.map((flight) => (
+            <FlightCard key={flight.id} {...flight} />
+          ))
+        ) : (
+          <div className='w-full text-center mt-8'>
+            <p className='text-lg'>No reservation found.</p>
+          </div>
+        )}
+      </div>
+      )}
+
+      
     </main>
   );
 };
