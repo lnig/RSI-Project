@@ -131,4 +131,39 @@
             </xs:sequence>
         </xs:complexType>
     </xs:element>
+
+    <xs:element name="getReservationByCodeRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="reservationCode" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getReservationByCodeResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="reservation" type="tns:reservation"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getReservationPdfRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="reservationCode" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getReservationPdfResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="success" type="xs:boolean"/>
+                <xs:element name="message" type="xs:string" minOccurs="0"/>
+                <xs:element name="pdfData" type="xs:base64Binary" minOccurs="0"/>
+                <xs:element name="fileName" type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
 </xs:schema>

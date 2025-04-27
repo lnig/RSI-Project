@@ -3,12 +3,11 @@ package org.example.flightreservationsystem.model;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "reservations")
-public class Reservation {
+public class ReservationDTO {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "RESERVATION_ID", nullable = false)
@@ -35,9 +34,9 @@ public class Reservation {
     @Column(name = "RESERVATION_DATE")
     private LocalDateTime reservationDate;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "FLIGHT_ID", nullable = false)
-    private Flight flight;
+    private FlightDTO flight;
 
     public Integer getId() {
         return id;
@@ -103,11 +102,11 @@ public class Reservation {
         this.reservationDate = reservationDate;
     }
 
-    public Flight getFlight() {
+    public FlightDTO getFlight() {
         return flight;
     }
 
-    public void setFlight(Flight flight) {
+    public void setFlight(FlightDTO flight) {
         this.flight = flight;
     }
 

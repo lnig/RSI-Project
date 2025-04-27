@@ -1,5 +1,7 @@
 package org.example.flightreservationsystem.endpoint;
 
+import org.example.flightreservationsystem.model.CityDTO;
+import org.example.flightreservationsystem.model.FlightDTO;
 import org.example.flightreservationsystem.service.FlightService;
 import org.example.flightreservationsystem.wsdl.*;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
@@ -40,7 +42,7 @@ public class FlightEndpoint {
     public GetAllFlightsResponse getAllFlights(@RequestPayload GetAllFlightsRequest request) {
         GetAllFlightsResponse response = new GetAllFlightsResponse();
         try {
-            List<org.example.flightreservationsystem.model.Flight> flights = flightService.getAllFlightsWithCities();
+            List<FlightDTO> flights = flightService.getAllFlightsWithCities();
             flights.forEach(flight -> response.getFlights().add(convertToWsdlFlight(flight)));
         } catch (Exception e) {
             throw new RuntimeException("Error getting all flights: " + e.getMessage(), e);
@@ -67,7 +69,7 @@ public class FlightEndpoint {
                 throw new IllegalArgumentException("Departure date is required");
             }
 
-            List<org.example.flightreservationsystem.model.Flight> flights = flightService.findFlightsBetweenCitiesWithCities(
+            List<FlightDTO> flights = flightService.findFlightsBetweenCitiesWithCities(
                     request.getDepartureCityId(),
                     request.getArrivalCityId(),
                     departureDate,
@@ -82,7 +84,7 @@ public class FlightEndpoint {
         return response;
     }
 
-    private Flight convertToWsdlFlight(org.example.flightreservationsystem.model.Flight flight) {
+    private Flight convertToWsdlFlight(FlightDTO flight) {
         Flight wsdlFlight = new Flight();
         wsdlFlight.setId(flight.getId());
         wsdlFlight.setFlightCode(flight.getFlightCode());
@@ -110,7 +112,7 @@ public class FlightEndpoint {
         return wsdlFlight;
     }
 
-    private City convertToWsdlCity(org.example.flightreservationsystem.model.City city) {
+    private City convertToWsdlCity(CityDTO city) {
         if (city == null) return null;
 
         City wsdlCity = new City();

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Calendar1, PlaneLanding, PlaneTakeoff, Search } from 'lucide-react';
 import DatePicker from './components/DatePicker';
 import { Flight, City } from './api/types';
-import { getAllFlights } from './api/flightSoapClient';
+import { cancelReservation, getAllFlights, getReservationByCode, searchFlights } from './api/flightSoapClient';
 import FlightCard from './components/FlightCard';
 import Select from './components/Select';
 import Button from './components/Button';
@@ -10,6 +10,7 @@ import RangeSlider from './components/Slider';
 import Checkbox from './components/Checkbox';
 import Label from './components/Label';
 import Input from './components/Input';
+import ReservationCard from './components/ReservationCard';
 
 function App() {
   const [selectedDateDeparture, setSelectedDateDeparture] = useState<Date | null>(null);
@@ -32,17 +33,21 @@ function App() {
     between4h8h: false,
     above8h: false
   });
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchPerformed, setSearchPerformed] = useState<boolean>(false);
+  const [reservationData, setReservationData] = useState<Reservation | null>(null);
+
   enum operationTypes {
     BOOK_FLIGHT = 'Book a flight',
     CHECK_RESERVATION = 'Check reservation'
   }
   const [operationType, setOperationType] = useState<string>(operationTypes.BOOK_FLIGHT);
-  const [seatsValue, setSeatsValue] = useState<number>(1);
   const [reservationCode, setReservationCode] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchFlights = async () => {
+    const fetchInitialData = async () => {
       try {
+        setLoading(true);
         const allFlights = await getAllFlights();
         setFlights(allFlights);
         
@@ -70,10 +75,12 @@ function App() {
         }
       } catch (error) {
         console.error("Error fetching flights:", error);
+      } finally {
+        setLoading(false);
       }
     };
   
-    fetchFlights();
+    fetchInitialData();
   }, []);
 
   const cityOptions = useMemo(() => {
@@ -99,42 +106,53 @@ function App() {
     }));
   };
 
+  const handleSearch = async () => {
+    try {
+      setLoading(true);
+      setSearchPerformed(true);
+  
+      if (!departureCity || !arrivalCity || !selectedDateDeparture) {
+        alert('Please select departure city, arrival city and departure date');
+        return;
+      }
+  
+
+      const departureDate = selectedDateDeparture.toISOString();
+      const returnDate = selectedDateArrival 
+      ? (() => {
+          const date = new Date(selectedDateArrival);
+          date.setDate(date.getDate() + 1);
+          return date.toISOString();
+        })()
+      : new Date('2099-12-31T23:59:59').toISOString();
+  
+      const searchResults = await searchFlights({
+        departureCityId: departureCity.id,
+        arrivalCityId: arrivalCity.id,
+        departureDate: departureDate,
+        returnDate: returnDate
+      });
+  
+      setFlights(searchResults);
+      
+      if (searchResults.length > 0) {
+        const prices = searchResults.map(f => f.basePrice);
+        setPriceRange([Math.min(...prices), Math.max(...prices)]);
+      } else {
+        alert('No flights found for selected criteria');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      alert('Error searching flights');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  
+
   const filteredFlights = useMemo(() => {
     return flights.filter(flight => {
-      if (departureCity && flight.departureCity.id !== departureCity.id) {
-        return false;
-      }
-      
-      if (arrivalCity && flight.arrivalCity.id !== arrivalCity.id) {
-        return false;
-      }
-      
-      if (selectedDateDeparture) {
-        const flightDepartureDate = new Date(flight.departureDatetime);
-        const selectedDepartureDate = new Date(selectedDateDeparture);
-        
-        if (
-          flightDepartureDate.getFullYear() !== selectedDepartureDate.getFullYear() ||
-          flightDepartureDate.getMonth() !== selectedDepartureDate.getMonth() ||
-          flightDepartureDate.getDate() !== selectedDepartureDate.getDate()
-        ) {
-          return false;
-        }
-      }
-
-      if (selectedDateArrival) {
-        const flightArrivalDate = new Date(flight.arrivalDatetime);
-        const selectedArrivalDate = new Date(selectedDateArrival);
-        
-        if (
-          flightArrivalDate.getFullYear() !== selectedArrivalDate.getFullYear() ||
-          flightArrivalDate.getMonth() !== selectedArrivalDate.getMonth() ||
-          flightArrivalDate.getDate() !== selectedArrivalDate.getDate()
-        ) {
-          return false;
-        }
-      }
-      
       if (flight.basePrice < priceRange[0] || flight.basePrice > priceRange[1]) {
         return false;
       }
@@ -192,22 +210,7 @@ function App() {
         default: return 0;
       }
     });
-  }, [
-    flights, 
-    departureCity, 
-    arrivalCity, 
-    selectedDateDeparture, 
-    selectedDateArrival,
-    priceRange, 
-    departureTimeFilter, 
-    arrivalTimeFilter, 
-    flyTimeFilters, 
-    sortOption
-  ]);
-
-  const handleSearch = () => {
-    setFlights([...flights]);
-  };
+  }, [flights, priceRange, departureTimeFilter, arrivalTimeFilter, flyTimeFilters, sortOption]);
 
   const handlePriceChange = (newRange: [number, number]) => {
     setPriceRange(newRange);
@@ -233,17 +236,32 @@ function App() {
     setOperationType(operationType);
   }
 
-  const handleSeatsValueChange = (newSeatsValue: string | number) => {
-    setSeatsValue(Number(newSeatsValue));
-  }
-
   const handleReservationCodeChange = (reservationCode: string | number) => {
     setReservationCode(String(reservationCode));
   }
 
-  const handleCheckReservation = () => {
+  const handleCheckReservation = async () => {
+    if (!reservationCode) {
+      alert('Please enter a reservation code');
+      return;
+    }
+  
+    try {
+      setLoading(true);
+      const reservation = await getReservationByCode(reservationCode);
+      setReservationData(reservation);
+    } catch (error) {
+      console.error('Error checking reservation:', error);
+      alert('Reservation not found or error occurred');
+      setReservationData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  }
+  const handleCancelReservation = async (reservationCode: string) => {
+    return await cancelReservation(reservationCode);
+  };
 
   return (
     <main className='flex flex-col w-full gap-8 pt-6'>
@@ -272,7 +290,7 @@ function App() {
           <div className='w-full flex gap-4 justify-between mt-4'>
             <div className='flex gap-4 w-full'>
               <div className='flex flex-col gap-1'>
-                <Label text='Departure city  (*)' fontSize={14} weight={500} fontColor='#565D6D'/>
+                <Label text='Departure city' fontSize={14} weight={500} fontColor='#565D6D'/>
                 <Select 
                   options={cityOptions}
                   value={departureCity?.id.toString() || null}
@@ -287,7 +305,7 @@ function App() {
               </div>
               
               <div className='flex flex-col gap-1'>
-                <Label text='Arrival city  (*)' fontSize={14} weight={500} fontColor='#565D6D'/>
+                <Label text='Arrival city' fontSize={14} weight={500} fontColor='#565D6D'/>
                 <Select 
                   options={cityOptions}
                   value={arrivalCity?.id.toString() || null}
@@ -302,7 +320,7 @@ function App() {
               </div>
               
               <div className='flex flex-col gap-1'>
-                <Label text='Departure date (*)' fontSize={14} weight={500} fontColor='#565D6D'/>
+                <Label text='Departure date' fontSize={14} weight={500} fontColor='#565D6D'/>
                 <DatePicker
                   size='m'
                   Icon={Calendar1}
@@ -331,15 +349,6 @@ function App() {
                 />
               </div>
 
-              <div className='flex flex-col gap-1'>
-                <Label text='Seats' fontSize={14} weight={500} fontColor='#565D6D'/>
-                <Input 
-                  type='number' 
-                  value={seatsValue}
-                  onValueChange={handleSeatsValueChange}
-                  placeholder="Enter number of seats"
-                />
-              </div>
             </div>
             <div className='mt-6'>
               <Button 
@@ -348,6 +357,7 @@ function App() {
                 width='w-64'
                 size='m'
                 onClick={handleSearch}
+                disabled={loading}
               />
             </div>
           </div>
@@ -505,32 +515,46 @@ function App() {
         </div>
 
         <div className='flex flex-wrap gap-4 w-full h-[calc(100vh-200px)] overflow-y-auto pr-6 content-start custom-scrollbar'>
-          {filteredFlights.length > 0 ? (
+          {loading ? (
+            <div className='w-full text-center mt-8'>
+              <p className='text-lg'>Loading flights...</p>
+            </div>
+          ) : filteredFlights.length > 0 ? (
             filteredFlights.map((flight) => (
               <FlightCard key={flight.id} {...flight} />
             ))
-          ) : (
+          ) : searchPerformed ? (
             <div className='w-full text-center mt-8'>
               <p className='text-lg'>No flights match your search criteria</p>
+            </div>
+          ) : (
+            <div className='w-full text-center mt-8'>
+              <p className='text-lg'>No flights available</p>
             </div>
           )}
         </div>
       </div>
       ) : (
-      <div className='flex flex-wrap gap-8 px-6'>
-        {filteredFlights.length > 0 ? (
-          filteredFlights.map((flight) => (
-            <FlightCard key={flight.id} {...flight} />
-          ))
-        ) : (
+        <div className='flex flex-wrap gap-8 px-6'>
+        {loading ? (
           <div className='w-full text-center mt-8'>
-            <p className='text-lg'>No reservation found.</p>
+            <p className='text-lg'>Loading reservation details...</p>
+          </div>
+        ) : reservationData ? (
+          <ReservationCard 
+            {...reservationData}
+            onCancel={handleCancelReservation}
+          />
+        ) : (
+          <div className='w-full'>
+            <h2 className='text-xl font-semibold mb-4'>Check Your Reservation</h2>
+            <div className='bg-white p-6 rounded-lg shadow'>
+              <p>Enter your reservation code above to check your booking details.</p>
+            </div>
           </div>
         )}
       </div>
       )}
-
-      
     </main>
   );
 };

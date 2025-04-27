@@ -1,7 +1,7 @@
 package org.example.flightreservationsystem.service;
 
-import org.example.flightreservationsystem.model.Flight;
-import org.example.flightreservationsystem.model.Reservation;
+import org.example.flightreservationsystem.model.FlightDTO;
+import org.example.flightreservationsystem.model.ReservationDTO;
 import org.example.flightreservationsystem.repository.FlightRepository;
 import org.example.flightreservationsystem.repository.ReservationRepository;
 import org.springframework.stereotype.Service;
@@ -29,51 +29,56 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
-    public Reservation createReservation(Reservation reservation) {
-        if (!flightService.checkSeatAvailability(reservation.getFlight().getId(), reservation.getSeatsReserved())) {
+    public ReservationDTO createReservation(ReservationDTO reservation) {
+        if (reservation == null || reservation.getFlight() == null || reservation.getSeatsReserved() == null) {
+            throw new IllegalArgumentException("Invalid reservation data");
+        }
+
+        FlightDTO flight = flightRepository.findById(reservation.getFlight().getId())
+                .orElseThrow(() -> new RuntimeException("Flight not found with id: " + reservation.getFlight().getId()));
+
+        if (flight.getAvailableSeats() < reservation.getSeatsReserved()) {
             throw new IllegalStateException("Not enough seats available");
         }
 
-        // Generate unique reservation code
-        reservation.setReservationCode(generateReservationCode());
+        String reservationCode;
+        do {
+            reservationCode = generateReservationCode();
+        } while (reservationRepository.existsByReservationCode(reservationCode));
 
-        // Calculate total price
-        BigDecimal totalPrice = calculateTotalPrice(reservation.getFlight().getId(), reservation.getSeatsReserved());
+        reservation.setReservationCode(reservationCode);
+
+        BigDecimal totalPrice = flight.getBasePrice().multiply(BigDecimal.valueOf(reservation.getSeatsReserved()));
         reservation.setTotalPrice(totalPrice);
 
-        // Set reservation date
         reservation.setReservationDate(LocalDateTime.now());
 
-        // Save reservation
-        Reservation savedReservation = reservationRepository.save(reservation);
+        flight.setAvailableSeats(flight.getAvailableSeats() - reservation.getSeatsReserved());
+        flightRepository.save(flight);
 
-        // Update available seats
-        flightService.updateAvailableSeats(reservation.getFlight().getId(), reservation.getSeatsReserved());
-
-        return savedReservation;
+        return reservationRepository.save(reservation);
     }
 
     @Override
-    public Reservation getReservationById(Integer id) {
+    public ReservationDTO getReservationById(Integer id) {
         return reservationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reservation not found with id: " + id));
     }
 
     @Override
-    public Reservation getReservationByCode(String reservationCode) {
+    public ReservationDTO getReservationByCode(String reservationCode) {
         return reservationRepository.findByReservationCode(reservationCode);
     }
 
     @Override
-    public List<Reservation> getAllReservations() {
+    public List<ReservationDTO> getAllReservations() {
         return reservationRepository.findAll();
     }
 
     @Override
-    public Reservation updateReservation(Integer id, Reservation reservation) {
-        Reservation existingReservation = getReservationById(id);
+    public ReservationDTO updateReservation(Integer id, ReservationDTO reservation) {
+        ReservationDTO existingReservation = getReservationById(id);
 
-        // Handle seat changes
         int seatDifference = reservation.getSeatsReserved() - existingReservation.getSeatsReserved();
         if (seatDifference != 0) {
             if (!flightService.checkSeatAvailability(reservation.getFlight().getId(), seatDifference)) {
@@ -82,7 +87,6 @@ public class ReservationServiceImpl implements ReservationService {
             flightService.updateAvailableSeats(reservation.getFlight().getId(), -seatDifference);
         }
 
-        // Update fields
         existingReservation.setPassengerFirstname(reservation.getPassengerFirstname());
         existingReservation.setPassengerLastname(reservation.getPassengerLastname());
         existingReservation.setPassengerEmail(reservation.getPassengerEmail());
@@ -98,25 +102,28 @@ public class ReservationServiceImpl implements ReservationService {
             throw new IllegalArgumentException("Reservation code cannot be null or empty");
         }
 
-        Reservation reservation = reservationRepository.findByReservationCode(reservationCode);
+        ReservationDTO reservation = reservationRepository.findByReservationCode(reservationCode);
+        if (reservation == null) {
+            throw new RuntimeException("Reservation not found with code: " + reservationCode);
+        }
 
-        // Zwróć miejsca do puli dostępnych
-        Flight flight = reservation.getFlight();
-        flight.setAvailableSeats(flight.getAvailableSeats() + reservation.getSeatsReserved());
-        flightRepository.save(flight);
+        FlightDTO flight = reservation.getFlight();
+        if (flight != null) {
+            flight.setAvailableSeats(flight.getAvailableSeats() + reservation.getSeatsReserved());
+            flightRepository.save(flight);
+        }
 
-        // Usuń rezerwację
         reservationRepository.delete(reservation);
     }
 
-    @Override
+        @Override
     public BigDecimal calculateTotalPrice(Integer flightId, Integer seats) {
-        Flight flight = flightRepository.findById(flightId)
+        FlightDTO flight = flightRepository.findById(flightId)
                 .orElseThrow(() -> new RuntimeException("Flight not found"));
         return flight.getBasePrice().multiply(BigDecimal.valueOf(seats));
     }
 
     private String generateReservationCode() {
-        return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
     }
 }

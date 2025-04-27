@@ -1,16 +1,16 @@
 package org.example.flightreservationsystem.service;
 
-import org.example.flightreservationsystem.model.Reservation;
+import org.example.flightreservationsystem.model.ReservationDTO;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 public interface ReservationService {
-    Reservation createReservation(Reservation reservation);
-    Reservation getReservationById(Integer id);
-    Reservation getReservationByCode(String reservationCode);
-    List<Reservation> getAllReservations();
-    Reservation updateReservation(Integer id, Reservation reservation);
+    ReservationDTO createReservation(ReservationDTO reservation);
+    ReservationDTO getReservationById(Integer id);
+    ReservationDTO getReservationByCode(String reservationCode);
+    List<ReservationDTO> getAllReservations();
+    ReservationDTO updateReservation(Integer id, ReservationDTO reservation);
     void cancelReservation(String reservationCode);
     BigDecimal calculateTotalPrice(Integer flightId, Integer seats);
 }

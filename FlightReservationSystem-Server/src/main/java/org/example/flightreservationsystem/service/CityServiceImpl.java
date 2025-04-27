@@ -1,8 +1,7 @@
-package org.example.flightreservationsystem.service.impl;
+package org.example.flightreservationsystem.service;
 
-import org.example.flightreservationsystem.model.City;
+import org.example.flightreservationsystem.model.CityDTO;
 import org.example.flightreservationsystem.repository.CityRepository;
-import org.example.flightreservationsystem.service.CityService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,24 +18,24 @@ public class CityServiceImpl implements CityService {
     }
 
     @Override
-    public City addCity(City city) {
+    public CityDTO addCity(CityDTO city) {
         return cityRepository.save(city);
     }
 
     @Override
-    public City getCityById(Integer id) {
+    public CityDTO getCityById(Integer id) {
         return cityRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("City not found with id: " + id));
     }
 
     @Override
-    public List<City> getAllCities() {
+    public List<CityDTO> getAllCities() {
         return cityRepository.findAll();
     }
 
     @Override
-    public City updateCity(Integer id, City city) {
-        City existingCity = getCityById(id);
+    public CityDTO updateCity(Integer id, CityDTO city) {
+        CityDTO existingCity = getCityById(id);
         existingCity.setCityName(city.getCityName());
         existingCity.setCountry(city.getCountry());
         return cityRepository.save(existingCity);

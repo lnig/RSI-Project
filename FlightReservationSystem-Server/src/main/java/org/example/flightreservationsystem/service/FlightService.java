@@ -1,22 +1,22 @@
 package org.example.flightreservationsystem.service;
 
-import org.example.flightreservationsystem.model.Flight;
+import org.example.flightreservationsystem.model.FlightDTO;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 public interface FlightService {
-    Flight addFlight(Flight flight);
-    Flight getFlightById(Integer id);
-    List<Flight> getAllFlights();
-    Flight updateFlight(Integer id, Flight flight);
+    FlightDTO addFlight(FlightDTO flight);
+    FlightDTO getFlightById(Integer id);
+    List<FlightDTO> getAllFlights();
+    FlightDTO updateFlight(Integer id, FlightDTO flight);
     void deleteFlight(Integer id);
-    List<Flight> findFlightsBetweenCities(Integer departureCityId, Integer arrivalCityId,
-                                          LocalDateTime departureDate, LocalDateTime returnDate);
+    List<FlightDTO> findFlightsBetweenCities(Integer departureCityId, Integer arrivalCityId,
+                                             LocalDateTime departureDate, LocalDateTime returnDate);
     boolean checkSeatAvailability(Integer flightId, Integer seatsRequested);
     void updateAvailableSeats(Integer flightId, Integer seatsReserved);
-    Flight getFlightByIdWithCities(Integer id);
-    List<Flight> findFlightsBetweenCitiesWithCities(Integer departureCityId, Integer arrivalCityId,
-                                                    LocalDateTime departureDate, LocalDateTime returnDate);
-    List<Flight> getAllFlightsWithCities();
+    FlightDTO getFlightByIdWithCities(Integer id);
+    List<FlightDTO> findFlightsBetweenCitiesWithCities(Integer departureCityId, Integer arrivalCityId,
+                                                       LocalDateTime departureDate, LocalDateTime returnDate);
+    List<FlightDTO> getAllFlightsWithCities();
 }

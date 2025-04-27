@@ -1,6 +1,6 @@
 package org.example.flightreservationsystem.service;
 
-import org.example.flightreservationsystem.model.Flight;
+import org.example.flightreservationsystem.model.FlightDTO;
 import org.example.flightreservationsystem.repository.FlightRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,28 +19,28 @@ public class FlightServiceImpl implements FlightService {
     }
 
     @Override
-    public Flight addFlight(Flight flight) {
+    public FlightDTO addFlight(FlightDTO flight) {
         if (flight.getArrivalDatetime().isBefore(flight.getDepartureDatetime())) {
             throw new IllegalArgumentException("Arrival date cannot be before departure date");
         }
-        flight.setAvailableSeats(flight.getTotalSeats()); // Initialize available seats
+        flight.setAvailableSeats(flight.getTotalSeats());
         return flightRepository.save(flight);
     }
 
     @Override
-    public Flight getFlightById(Integer id) {
+    public FlightDTO getFlightById(Integer id) {
         return flightRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Flight not found with id: " + id));
     }
 
     @Override
-    public List<Flight> getAllFlights() {
+    public List<FlightDTO> getAllFlights() {
         return flightRepository.findAll();
     }
 
     @Override
-    public Flight updateFlight(Integer id, Flight flight) {
-        Flight existingFlight = getFlightById(id);
+    public FlightDTO updateFlight(Integer id, FlightDTO flight) {
+        FlightDTO existingFlight = getFlightById(id);
         existingFlight.setFlightCode(flight.getFlightCode());
         existingFlight.setDepartureCity(flight.getDepartureCity());
         existingFlight.setArrivalCity(flight.getArrivalCity());
@@ -48,7 +48,6 @@ public class FlightServiceImpl implements FlightService {
         existingFlight.setArrivalDatetime(flight.getArrivalDatetime());
         existingFlight.setBasePrice(flight.getBasePrice());
 
-        // When updating total seats, also adjust available seats
         int seatDifference = flight.getTotalSeats() - existingFlight.getTotalSeats();
         existingFlight.setTotalSeats(flight.getTotalSeats());
         existingFlight.setAvailableSeats(existingFlight.getAvailableSeats() + seatDifference);
@@ -62,8 +61,8 @@ public class FlightServiceImpl implements FlightService {
     }
 
     @Override
-    public List<Flight> findFlightsBetweenCities(Integer departureCityId, Integer arrivalCityId,
-                                                 LocalDateTime departureDate, LocalDateTime returnDate) {
+    public List<FlightDTO> findFlightsBetweenCities(Integer departureCityId, Integer arrivalCityId,
+                                                    LocalDateTime departureDate, LocalDateTime returnDate) {
         if (departureDate == null) {
             return flightRepository.findByDepartureCityIdAndArrivalCityId(departureCityId, arrivalCityId);
         }
@@ -73,13 +72,13 @@ public class FlightServiceImpl implements FlightService {
 
     @Override
     public boolean checkSeatAvailability(Integer flightId, Integer seatsRequested) {
-        Flight flight = getFlightById(flightId);
+        FlightDTO flight = getFlightById(flightId);
         return flight.getAvailableSeats() >= seatsRequested;
     }
 
     @Override
     public void updateAvailableSeats(Integer flightId, Integer seatsReserved) {
-        Flight flight = getFlightById(flightId);
+        FlightDTO flight = getFlightById(flightId);
         int newAvailableSeats = flight.getAvailableSeats() - seatsReserved;
         if (newAvailableSeats < 0) {
             throw new IllegalStateException("Not enough seats available");
@@ -89,20 +88,20 @@ public class FlightServiceImpl implements FlightService {
     }
 
     @Override
-    public Flight getFlightByIdWithCities(Integer id) {
-        Flight flight = flightRepository.findById(id)
+    public FlightDTO getFlightByIdWithCities(Integer id) {
+        FlightDTO flight = flightRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Flight not found with id: " + id));
-        // Initialize cities
+
         flight.getDepartureCity().getId();
         flight.getArrivalCity().getId();
         return flight;
     }
 
     @Override
-    public List<Flight> findFlightsBetweenCitiesWithCities(Integer departureCityId, Integer arrivalCityId,
-                                                           LocalDateTime departureDate, LocalDateTime returnDate) {
-        List<Flight> flights = findFlightsBetweenCities(departureCityId, arrivalCityId, departureDate, returnDate);
-        // Initialize cities for each flight
+    public List<FlightDTO> findFlightsBetweenCitiesWithCities(Integer departureCityId, Integer arrivalCityId,
+                                                              LocalDateTime departureDate, LocalDateTime returnDate) {
+        List<FlightDTO> flights = findFlightsBetweenCities(departureCityId, arrivalCityId, departureDate, returnDate);
+
         flights.forEach(flight -> {
             flight.getDepartureCity().getId();
             flight.getArrivalCity().getId();
@@ -111,12 +110,12 @@ public class FlightServiceImpl implements FlightService {
     }
 
     @Override
-    public List<Flight> getAllFlightsWithCities() {
-        List<Flight> flights = flightRepository.findAll();
-        // Initialize cities for each flight to avoid LazyInitializationException
+    public List<FlightDTO> getAllFlightsWithCities() {
+        List<FlightDTO> flights = flightRepository.findAll();
+
         flights.forEach(flight -> {
-            flight.getDepartureCity().getId(); // Trigger loading
-            flight.getArrivalCity().getId();   // Trigger loading
+            flight.getDepartureCity().getId();
+            flight.getArrivalCity().getId();
         });
         return flights;
     }

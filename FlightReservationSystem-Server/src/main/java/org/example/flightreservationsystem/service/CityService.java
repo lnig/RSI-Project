@@ -1,13 +1,13 @@
 package org.example.flightreservationsystem.service;
 
-import org.example.flightreservationsystem.model.City;
+import org.example.flightreservationsystem.model.CityDTO;
 
 import java.util.List;
 
 public interface CityService {
-    City addCity(City city);
-    City getCityById(Integer id);
-    List<City> getAllCities();
-    City updateCity(Integer id, City city);
+    CityDTO addCity(CityDTO city);
+    CityDTO getCityById(Integer id);
+    List<CityDTO> getAllCities();
+    CityDTO updateCity(Integer id, CityDTO city);
     void deleteCity(Integer id);
 }

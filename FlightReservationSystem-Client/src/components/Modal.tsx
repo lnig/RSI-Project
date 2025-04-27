@@ -13,7 +13,7 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto custom-scrollbar">
         <div className="bg-white flex justify-between items-center p-4 z-10">
           <h3 className="text-xl font-semibold text-[#313642]">{title}</h3>
           <button 

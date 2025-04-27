@@ -28,7 +28,9 @@ export interface City {
     flight: Flight;
   }
   
-  export type SoapAction = 'getFlight' | 'searchFlights' | 'getAllFlights';
+  export type SoapAction = 'getFlight' | 'searchFlights' | 'getAllFlights' | 
+                        'createReservation' | 'cancelReservation' | 
+                        'getReservationByCode' | 'getReservationPdf';
 
   export interface GetFlightPayload {
     id: string;
@@ -44,8 +46,45 @@ export interface City {
   export interface GetAllFlightsPayload {
     // Może zawierać jakieś pola w przyszłości
   }
+
+  export interface CreateReservationPayload {
+    flightId: string;
+    passengerFirstname: string;
+    passengerLastname: string;
+    passengerEmail: string;
+    seatsReserved: string;
+    reservationDate?: string;
+  }
+  
+  export interface CancelReservationPayload {
+    reservationCode: string;
+  }
+  
+  export interface CancelReservationResponse {
+    success: boolean;
+    message: string;
+  }
+
+  export interface GetReservationByCodePayload {
+    reservationCode: string;
+  }
+  
+  export interface GetReservationPdfPayload {
+    reservationCode: string;
+  }
+  
+  export interface GetReservationPdfResponse {
+    success: boolean;
+    message?: string;
+    pdfData?: string; // base64 encoded PDF
+    fileName?: string;
+  }
+
   
   export type Payload = 
-    | { action: 'getFlight', payload: GetFlightPayload }
-    | { action: 'searchFlights', payload: SearchFlightsPayload }
-    | { action: 'getAllFlights', payload: GetAllFlightsPayload };
+  | { action: 'getFlight', payload: GetFlightPayload }
+  | { action: 'searchFlights', payload: SearchFlightsPayload }
+  | { action: 'getAllFlights', payload: GetAllFlightsPayload }
+  | { action: 'createReservation', payload: CreateReservationPayload }
+  | { action: 'cancelReservation', payload: CancelReservationPayload }
+  | { action: 'getReservationByCode', payload: GetReservationByCodePayload };

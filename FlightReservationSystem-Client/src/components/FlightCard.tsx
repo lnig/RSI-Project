@@ -1,10 +1,12 @@
 import { Armchair, Calendar1, CircleAlert, Flag, KeyRound, MapPin, Plane, PlaneLanding, PlaneTakeoff } from "lucide-react";
 import Button from "./Button";
-import { Flight } from "../api/types";
+import { Flight, Reservation } from "../api/types";
 import Tag from "./Tag";
 import Modal from "./Modal";
 import { useState } from "react";
 import NumberInput from "./NumberInput";
+import Input from "./Input";
+import { createReservation } from "../api/flightSoapClient";
 
 interface FlightCardProps extends Flight {}
 
@@ -22,6 +24,18 @@ const FlightCard: React.FC<FlightCardProps> = ({
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [passengerCount, setPassengerCount] = useState(1);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [errors, setErrors] = useState({
+    firstName: false,
+    lastName: false,
+    email: false,
+    seats: false
+  });
+  const [isBooking, setIsBooking] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [reservationDetails, setReservationDetails] = useState<Reservation | null>(null);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -69,18 +83,82 @@ const FlightCard: React.FC<FlightCardProps> = ({
     setIsBookingModalOpen(false);
     setPassengerCount(1);
     setSelectedSeats([]);
+    setFirstName('');
+    setLastName('');
+    setEmail('');
+    setErrors({
+      firstName: false,
+      lastName: false,
+      email: false,
+      seats: false
+    });
   };
 
-  const handleSubmitBooking = () => {
-    console.log("Booking details:", {
-      flightId: id,
-      passengers: passengerCount,
-      seats: selectedSeats,
-      totalPrice: basePrice * passengerCount
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const handleSubmitBooking = async () => {
+    setIsBooking(true);
+    setErrors({
+      firstName: false,
+      lastName: false,
+      email: false,
+      seats: false
     });
-    
-    alert(`Flight ${flightCode} booked successfully!`);
-    handleModalClose();
+
+    // Validate form
+    let isValid = true;
+    const newErrors = { ...errors };
+
+    if (!firstName.trim()) {
+      newErrors.firstName = true;
+      isValid = false;
+    }
+
+    if (!lastName.trim()) {
+      newErrors.lastName = true;
+      isValid = false;
+    }
+
+    if (!email.trim() || !validateEmail(email)) {
+      newErrors.email = true;
+      isValid = false;
+    }
+
+    if (selectedSeats.length !== passengerCount) {
+      newErrors.seats = true;
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+
+    if (!isValid) {
+      setIsBooking(false);
+      return;
+    }
+
+    try {
+      // Create the reservation
+      const reservation = await createReservation({
+        flightId: id,
+        passengerFirstname: firstName,
+        passengerLastname: lastName,
+        passengerEmail: email,
+        seatsReserved: passengerCount
+      });
+
+      // Set reservation details and show success modal
+      setReservationDetails(reservation);
+      setShowSuccessModal(true);
+      handleModalClose();
+    } catch (error) {
+      console.error("Booking failed:", error);
+      alert(`Booking failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   const toggleSeatSelection = (seat: string) => {
@@ -92,6 +170,18 @@ const FlightCard: React.FC<FlightCardProps> = ({
       }
     }
   };
+
+  const handleFirstNameChange = (firstName: string | number) => {
+    setFirstName(String(firstName));
+  }
+
+  const handleLastNameChange = (lastName: string | number) => {
+    setLastName(String(lastName));
+  }
+
+  const handleEmailChange = (email: string | number) => {
+    setEmail(String(email));
+  }
 
   return (
     <div className="w-full flex flex-col h-fit p-4 border rounded border-[#DEE1E5]" key={id}>
@@ -151,7 +241,6 @@ const FlightCard: React.FC<FlightCardProps> = ({
             onClick={handleBookFlight}
           />
         </div>
-        
       </div>
 
       <Modal 
@@ -191,6 +280,55 @@ const FlightCard: React.FC<FlightCardProps> = ({
             </div>
           </div>
 
+          <div className="flex w-full gap-4">
+            <div className="mt-4 w-1/2">
+              <label className="block mb-1 font-medium text-[#16191E]">First Name</label>
+              <Input 
+                type="text"
+                value={firstName}
+                onValueChange={handleFirstNameChange}
+                placeholder="eg. John"
+                width="w-full"
+                size="l"
+              />
+              {errors.firstName && (
+                <p className="mt-1 text-sm text-red-500">First name is required</p>
+              )}
+            </div>
+
+            <div className="mt-4 w-1/2">
+              <label className="block mb-1 font-medium text-[#16191E]">Last Name</label>
+              <Input 
+                type="text"
+                value={lastName}
+                onValueChange={handleLastNameChange}
+                placeholder="eg. Smith"
+                width="w-full"
+                size="l"
+              />
+              {errors.lastName && (
+                <p className="mt-1 text-sm text-red-500">Last name is required</p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block mb-1 font-medium text-[#16191E]">Email</label>
+            <Input 
+              type="text"
+              value={email}
+              onValueChange={handleEmailChange}
+              placeholder="eg. john.doe@example.com"
+              width="w-full"
+              size="l"
+            />
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-500">
+                {!email ? "Email is required" : "Please enter a valid email"}
+              </p>
+            )}
+          </div>
+          
           <div className="mt-4">
             <label className="block mb-1 font-medium text-[#16191E]">Passengers</label>
             <NumberInput 
@@ -208,6 +346,9 @@ const FlightCard: React.FC<FlightCardProps> = ({
           <div className="mt-4">
             <label className="block mb-2 font-medium text-[#16191E]">
               Select Seats ({selectedSeats.length}/{passengerCount})
+              {errors.seats && (
+                <span className="ml-2 text-sm text-red-500">Please select all seats</span>
+              )}
             </label>
 
             <div className="max-h-60 overflow-y-auto custom-scrollbar flex gap-8">
@@ -295,17 +436,70 @@ const FlightCard: React.FC<FlightCardProps> = ({
             </div>
             <div className="flex justify-end">
               <Button
-                text="Confirm Booking"
+                text={isBooking ? "Processing..." : "Confirm Booking"}
                 type="primary"
                 onClick={handleSubmitBooking}
-                disabled={selectedSeats.length !== passengerCount}
+                disabled={selectedSeats.length !== passengerCount || isBooking}
+
               />
             </div>
           </div>
         </div>
       </Modal>
+
+      {showSuccessModal && reservationDetails && (
+        <Modal 
+          isOpen={showSuccessModal} 
+          onClose={() => setShowSuccessModal(false)}
+          title="Booking Confirmed"
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-center gap-2 p-4 bg-green-50 rounded">
+              <CircleAlert className="text-green-500" size={24} />
+              <p className="text-green-800 font-medium">Your booking was successful!</p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-[#565D6D]">Reservation Code:</span>
+                <span className="font-medium">{reservationDetails.reservationCode}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#565D6D]">Flight:</span>
+                <span className="font-medium">{reservationDetails.flight.flightCode}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#565D6D]">Passenger:</span>
+                <span className="font-medium">{reservationDetails.passengerFirstname} {reservationDetails.passengerLastname}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#565D6D]">Seats:</span>
+                <span className="font-medium">{reservationDetails.seatsReserved}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#565D6D]">Total Price:</span>
+                <span className="font-medium">${reservationDetails.totalPrice.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-[#8E94A0]">
+                A confirmation has been sent to {reservationDetails.passengerEmail}
+              </p>
+            </div>
+
+            <div className="flex justify-end mt-4">
+              <Button
+                text="Close"
+                type="secondary"
+                onClick={() => setShowSuccessModal(false)}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
-    );
-  };
-  
-  export default FlightCard;
+  );
+};
+
+export default FlightCard;
