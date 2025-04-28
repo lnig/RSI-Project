@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Calendar1, PlaneLanding, PlaneTakeoff, Search } from 'lucide-react';
 import DatePicker from './components/DatePicker';
-import { Flight, City } from './api/types';
+import { Flight, City, Reservation } from './api/types';
 import { cancelReservation, getAllFlights, getReservationByCode, searchFlights } from './api/flightSoapClient';
 import FlightCard from './components/FlightCard';
 import Select from './components/Select';
@@ -11,6 +11,8 @@ import Checkbox from './components/Checkbox';
 import Label from './components/Label';
 import Input from './components/Input';
 import ReservationCard from './components/ReservationCard';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   const [selectedDateDeparture, setSelectedDateDeparture] = useState<Date | null>(null);
@@ -112,11 +114,10 @@ function App() {
       setSearchPerformed(true);
   
       if (!departureCity || !arrivalCity || !selectedDateDeparture) {
-        alert('Please select departure city, arrival city and departure date');
+        toast.error('Please select departure city, arrival city and departure date');
         return;
       }
   
-
       const departureDate = selectedDateDeparture.toISOString();
       const returnDate = selectedDateArrival 
       ? (() => {
@@ -139,17 +140,15 @@ function App() {
         const prices = searchResults.map(f => f.basePrice);
         setPriceRange([Math.min(...prices), Math.max(...prices)]);
       } else {
-        alert('No flights found for selected criteria');
+        toast.info('No flights found for selected criteria');
       }
     } catch (error) {
       console.error('Search error:', error);
-      alert('Error searching flights');
+      toast.error('Error searching flights');
     } finally {
       setLoading(false);
     }
   };
-
-  
 
   const filteredFlights = useMemo(() => {
     return flights.filter(flight => {
@@ -242,7 +241,7 @@ function App() {
 
   const handleCheckReservation = async () => {
     if (!reservationCode) {
-      alert('Please enter a reservation code');
+      toast.error('Please enter a reservation code');
       return;
     }
   
@@ -252,7 +251,7 @@ function App() {
       setReservationData(reservation);
     } catch (error) {
       console.error('Error checking reservation:', error);
-      alert('Reservation not found or error occurred');
+      toast.error('Reservation not found or error occurred');
       setReservationData(null);
     } finally {
       setLoading(false);
@@ -264,7 +263,19 @@ function App() {
   };
 
   return (
-    <main className='flex flex-col w-full gap-8 pt-6'>
+    <main className='flex flex-col w-full gap-8'>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <div className='w-full h-32 bg-[#F8FBF8] px-6 flex flex-col'>
         <div className='flex items-center justify-between'>
           <p className='font-semibold text-2xl text-[#313642]'>
@@ -548,7 +559,7 @@ function App() {
         ) : (
           <div className='w-full'>
             <h2 className='text-xl font-semibold mb-4'>Check Your Reservation</h2>
-            <div className='bg-white p-6 rounded-lg shadow'>
+            <div>
               <p>Enter your reservation code above to check your booking details.</p>
             </div>
           </div>

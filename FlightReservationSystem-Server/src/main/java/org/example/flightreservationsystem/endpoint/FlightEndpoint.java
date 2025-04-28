@@ -50,30 +50,28 @@ public class FlightEndpoint {
         return response;
     }
 
-
-
     @PayloadRoot(namespace = NAMESPACE_URI, localPart = "searchFlightsRequest")
     @ResponsePayload
     public SearchFlightsResponse searchFlights(@RequestPayload SearchFlightsRequest request) {
         SearchFlightsResponse response = new SearchFlightsResponse();
         try {
             LocalDateTime departureDate = request.getDepartureDate() != null ?
-                    request.getDepartureDate().toGregorianCalendar().toZonedDateTime().toLocalDateTime() :
-                    null;
+                request.getDepartureDate().toGregorianCalendar().toZonedDateTime().toLocalDateTime() :
+                null;
 
             LocalDateTime returnDate = request.getReturnDate() != null ?
-                    request.getReturnDate().toGregorianCalendar().toZonedDateTime().toLocalDateTime() :
-                    null;
+                request.getReturnDate().toGregorianCalendar().toZonedDateTime().toLocalDateTime() :
+                null;
 
             if (departureDate == null) {
                 throw new IllegalArgumentException("Departure date is required");
             }
 
             List<FlightDTO> flights = flightService.findFlightsBetweenCitiesWithCities(
-                    request.getDepartureCityId(),
-                    request.getArrivalCityId(),
-                    departureDate,
-                    returnDate
+                request.getDepartureCityId(),
+                request.getArrivalCityId(),
+                departureDate,
+                returnDate
             );
 
             flights.forEach(flight -> response.getFlights().add(convertToWsdlFlight(flight)));

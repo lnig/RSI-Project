@@ -7,9 +7,6 @@ import {
 import {
     SoapAction, 
     Flight,
-    GetAllFlightsPayload,
-    GetFlightPayload,
-    SearchFlightsPayload,
     City,
     Reservation,
     CancelReservationResponse,
@@ -43,13 +40,11 @@ export const callSoapService = async <T>(
 
     const xmlDoc = parseXmlResponse(response.data, SERVICE_NS);
     
-    // Znajdź ciało SOAP na różne sposoby
-    let soapBody = xmlDoc.documentElement;
+    const soapBody = xmlDoc.documentElement;
     if (!soapBody) {
       throw new Error("No root element in XML response");
     }
 
-    // Alternatywne metody znajdowania Body
     let bodyElement = soapBody.getElementsByTagNameNS(SOAP_NS, "Body")[0];
     if (!bodyElement) {
       bodyElement = soapBody.getElementsByTagName("Body")[0];
@@ -73,26 +68,6 @@ export const callSoapService = async <T>(
     throw new Error(`SOAP Request Failed: ${getErrorMessage(error)}`);
   }
 };
-
-function getErrorMessage(error: any): string {
-  if (error.response) {
-    if (error.response.data) {
-      if (typeof error.response.data === 'string') {
-        if (error.response.data.includes('<faultstring>')) {
-          const faultString = error.response.data.match(/<faultstring>(.*?)<\/faultstring>/)?.[1];
-          return faultString || error.response.data;
-        }
-        return error.response.data;
-      }
-      return JSON.stringify(error.response.data);
-    }
-    return `Server responded with status ${error.response.status}`;
-  } else if (error.request) {
-    return "No response received from server";
-  }
-  return error.message || "Unknown error occurred";
-}
-
 
 const parseSoapResponse = <T>(action: SoapAction, soapBody: Element): T => {
   try {
@@ -120,71 +95,89 @@ const parseSoapResponse = <T>(action: SoapAction, soapBody: Element): T => {
   }
 };
 
-const parseReservationResponse = (soapBody: Element): Reservation => {
-  const responseElement = soapBody.getElementsByTagNameNS(SERVICE_NS, "getReservationByCodeResponse")[0];
+const parseFlightResponse = (soapBody: Element): Flight => {
+  const responseElement = soapBody.getElementsByTagNameNS(SERVICE_NS, "getFlightResponse")[0];
   if (!responseElement) {
-      throw new Error("getReservationByCodeResponse element not found");
+      throw new Error("getFlightResponse element not found");
   }
 
-  const reservationElement = responseElement.getElementsByTagNameNS(SERVICE_NS, "reservation")[0];
-  if (!reservationElement) {
-      throw new Error("Reservation element not found in response");
-  }
-
-  return parseReservationElement(reservationElement);
-};
-
-const parseCreateReservationResponse = (soapBody: Element): Reservation => {
-  try {
-    // Debugowanie struktury odpowiedzi
-    console.log("SOAP Body content:", soapBody.innerHTML);
-
-    // Próbuj różne ścieżki dostępu do odpowiedzi
-    let responseElement = soapBody.querySelector("*|createReservationResponse, createReservationResponse");
-    if (!responseElement) {
-      // Sprawdź czy odpowiedź jest bezpośrednio w Body
-      if (soapBody.children.length === 1) {
-        responseElement = soapBody.firstElementChild;
-      }
-    }
-
-    if (!responseElement) {
-      console.error("Response element not found in:", soapBody);
-      throw new Error("Could not find reservation response in SOAP body");
-    }
-
-    // Debugowanie elementu odpowiedzi
-    console.log("Response element:", responseElement.outerHTML);
-
-    let reservationElement = responseElement.querySelector("*|reservation, reservation");
-    if (!reservationElement && responseElement.children.length === 1) {
-      reservationElement = responseElement.firstElementChild;
-    }
-
-    if (!reservationElement) {
-      console.error("Reservation element not found in:", responseElement);
-      throw new Error("Could not find reservation data in response");
-    }
-
-    // Debugowanie elementu rezerwacji
-    console.log("Reservation element:", reservationElement.outerHTML);
-
-    return parseReservationElement(reservationElement);
-  } catch (error) {
-    console.error("Error parsing reservation response:", error);
-    throw new Error(`Failed to parse reservation: ${error instanceof Error ? error.message : String(error)}`);
-  }
-};
-
-const parseCancelReservationResponse = (soapBody: Element): CancelReservationResponse => {
-  const responseElement = soapBody.getElementsByTagNameNS(SERVICE_NS, "cancelReservationResponse")[0];
-  if (!responseElement) {
-      throw new Error("cancelReservationResponse element not found");
+  const flightElement = responseElement.getElementsByTagNameNS(SERVICE_NS, "flight")[0];
+  if (!flightElement) {
+      throw new Error("Flight element not found in response");
   }
 
   return {
-      success: getXmlValue(responseElement, "success", SERVICE_NS)?.toLowerCase() === 'true',
-      message: getXmlValue(responseElement, "message", SERVICE_NS) || ''
+      id: parseInt(getXmlValue(flightElement, "id", SERVICE_NS) || "0"),
+      flightCode: getXmlValue(flightElement, "flightCode", SERVICE_NS) || "",
+      departureCity: parseCity(flightElement.getElementsByTagNameNS(SERVICE_NS, "departureCity")[0]),
+      arrivalCity: parseCity(flightElement.getElementsByTagNameNS(SERVICE_NS, "arrivalCity")[0]),
+      departureDatetime: parseSoapDateTime(getXmlValue(flightElement, "departureDatetime", SERVICE_NS)),
+      arrivalDatetime: parseSoapDateTime(getXmlValue(flightElement, "arrivalDatetime", SERVICE_NS)),
+      totalSeats: parseInt(getXmlValue(flightElement, "totalSeats", SERVICE_NS) || "0"),
+      availableSeats: parseInt(getXmlValue(flightElement, "availableSeats", SERVICE_NS) || "0"),
+      basePrice: parseFloat(getXmlValue(flightElement, "basePrice", SERVICE_NS) || "0")
+  };
+};
+
+const parseFlightsResponse = (soapBody: Element): Flight[] => {
+  const flights: Flight[] = [];
+  
+  const responseElements = [
+    ...Array.from(soapBody.getElementsByTagNameNS(SERVICE_NS, "searchFlightsResponse")),
+    ...Array.from(soapBody.getElementsByTagNameNS(SERVICE_NS, "getAllFlightsResponse"))
+  ];
+
+  for (const responseElement of responseElements) {
+    const flightElements = [
+      ...Array.from(responseElement.getElementsByTagNameNS(SERVICE_NS, "flights")),
+      ...Array.from(responseElement.getElementsByTagNameNS(SERVICE_NS, "flight"))
+    ];
+
+    for (const flightElement of flightElements) {
+      try {
+        flights.push(parseFlightElement(flightElement));
+      } catch (e) {
+        console.error('Error parsing flight element:', e);
+      }
+    }
+  }
+
+  return flights;
+};
+
+const parseFlightElement = (flightElement: Element): Flight => {
+  const departureCityElement = flightElement.getElementsByTagNameNS(SERVICE_NS, "departureCity")[0] ||
+                              flightElement.getElementsByTagName("departureCity")[0];
+  
+  const arrivalCityElement = flightElement.getElementsByTagNameNS(SERVICE_NS, "arrivalCity")[0] ||
+                            flightElement.getElementsByTagName("arrivalCity")[0];
+
+  return {
+    id: parseInt(getXmlValue(flightElement, "id", SERVICE_NS) || "0"),
+    flightCode: getXmlValue(flightElement, "flightCode", SERVICE_NS) || "",
+    departureCity: parseCityElement(departureCityElement),
+    arrivalCity: parseCityElement(arrivalCityElement),
+    departureDatetime: parseSoapDateTime(getXmlValue(flightElement, "departureDatetime", SERVICE_NS)),
+    arrivalDatetime: parseSoapDateTime(getXmlValue(flightElement, "arrivalDatetime", SERVICE_NS)),
+    totalSeats: parseInt(getXmlValue(flightElement, "totalSeats", SERVICE_NS) || "0"),
+    availableSeats: parseInt(getXmlValue(flightElement, "availableSeats", SERVICE_NS) || "0"),
+    basePrice: parseFloat(getXmlValue(flightElement, "basePrice", SERVICE_NS) || "0")
+  };
+};
+
+const parseCityElement = (cityElement: Element | undefined): City => {
+  if (!cityElement) {
+    return {
+      id: 0,
+      cityName: "",
+      country: ""
+    };
+  }
+  
+  return {
+    id: parseInt(getXmlValue(cityElement, "id", SERVICE_NS) || "0"),
+    cityName: getXmlValue(cityElement, "cityName", SERVICE_NS) || "",
+    country: getXmlValue(cityElement, "country", SERVICE_NS) || ""
   };
 };
 
@@ -198,12 +191,10 @@ const parseReservationElement = (reservationElement: Element): Reservation => {
   const flightElement = reservationElement.getElementsByTagNameNS(SERVICE_NS, "flight")[0] ||
                        reservationElement.getElementsByTagName("flight")[0];
   
-  // Parse basic flight info
   const flightId = parseInt(getXmlValue(flightElement, "id", SERVICE_NS) || "0");
   const totalSeats = parseInt(getXmlValue(flightElement, "totalSeats", SERVICE_NS) || "0");
   const availableSeats = parseInt(getXmlValue(flightElement, "availableSeats", SERVICE_NS) || "0");
 
-  // Create minimal flight object
   const flight: Flight = {
     id: flightId,
     flightCode: getXmlValue(flightElement, "flightCode", SERVICE_NS) || "",
@@ -229,40 +220,103 @@ const parseReservationElement = (reservationElement: Element): Reservation => {
   };
 };
 
-const parseFlightResponse = (soapBody: Element): Flight => {
-  const responseElement = soapBody.getElementsByTagNameNS(SERVICE_NS, "getFlightResponse")[0];
+const parseCreateReservationResponse = (soapBody: Element): Reservation => {
+  try {
+    let responseElement = soapBody.querySelector("*|createReservationResponse, createReservationResponse");
+    
+    if (!responseElement) {
+      if (soapBody.children.length === 1) {
+        responseElement = soapBody.firstElementChild;
+      }
+    }
+
+    if (!responseElement) {
+      console.error("Response element not found in:", soapBody);
+      throw new Error("Could not find reservation response in SOAP body");
+    }
+
+    let reservationElement = responseElement.querySelector("*|reservation, reservation");
+    if (!reservationElement && responseElement.children.length === 1) {
+      reservationElement = responseElement.firstElementChild;
+    }
+
+    if (!reservationElement) {
+      console.error("Reservation element not found in:", responseElement);
+      throw new Error("Could not find reservation data in response");
+    }
+
+    return parseReservationElement(reservationElement);
+  } catch (error) {
+    console.error("Error parsing reservation response:", error);
+    throw new Error(`Failed to parse reservation: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+
+const parseReservationResponse = (soapBody: Element): Reservation => {
+  const responseElement = soapBody.getElementsByTagNameNS(SERVICE_NS, "getReservationByCodeResponse")[0];
   if (!responseElement) {
-      throw new Error("getFlightResponse element not found");
+      throw new Error("getReservationByCodeResponse element not found");
   }
 
-  const flightElement = responseElement.getElementsByTagNameNS(SERVICE_NS, "flight")[0];
-  if (!flightElement) {
-      throw new Error("Flight element not found in response");
+  const reservationElement = responseElement.getElementsByTagNameNS(SERVICE_NS, "reservation")[0];
+  if (!reservationElement) {
+      throw new Error("Reservation element not found in response");
+  }
+
+  return parseReservationElement(reservationElement);
+};
+
+
+export const getReservationByCode = async (reservationCode: string): Promise<Reservation> => {
+  try {
+    return await callSoapService<Reservation>('getReservationByCode', {
+      reservationCode: reservationCode
+    });
+  } catch (error) {
+    console.error('Get reservation by code error:', error);
+    throw error;
+  }
+};
+
+const parseCancelReservationResponse = (soapBody: Element): CancelReservationResponse => {
+  const responseElement = soapBody.getElementsByTagNameNS(SERVICE_NS, "cancelReservationResponse")[0];
+  if (!responseElement) {
+      throw new Error("cancelReservationResponse element not found");
   }
 
   return {
-      id: parseInt(getXmlValue(flightElement, "id", SERVICE_NS) || "0"),
-      flightCode: getXmlValue(flightElement, "flightCode", SERVICE_NS) || "",
-      departureCity: parseCity(flightElement.getElementsByTagNameNS(SERVICE_NS, "departureCity")[0]),
-      arrivalCity: parseCity(flightElement.getElementsByTagNameNS(SERVICE_NS, "arrivalCity")[0]),
-      departureDatetime: parseSoapDateTime(getXmlValue(flightElement, "departureDatetime", SERVICE_NS)),
-      arrivalDatetime: parseSoapDateTime(getXmlValue(flightElement, "arrivalDatetime", SERVICE_NS)),
-      totalSeats: parseInt(getXmlValue(flightElement, "totalSeats", SERVICE_NS) || "0"),
-      availableSeats: parseInt(getXmlValue(flightElement, "availableSeats", SERVICE_NS) || "0"),
-      basePrice: parseFloat(getXmlValue(flightElement, "basePrice", SERVICE_NS) || "0")
+      success: getXmlValue(responseElement, "success", SERVICE_NS)?.toLowerCase() === 'true',
+      message: getXmlValue(responseElement, "message", SERVICE_NS) || ''
   };
 };
+
+function getErrorMessage(error: any): string {
+  if (error.response) {
+    if (error.response.data) {
+      if (typeof error.response.data === 'string') {
+        if (error.response.data.includes('<faultstring>')) {
+          const faultString = error.response.data.match(/<faultstring>(.*?)<\/faultstring>/)?.[1];
+          return faultString || error.response.data;
+        }
+        return error.response.data;
+      }
+      return JSON.stringify(error.response.data);
+    }
+    return `Server responded with status ${error.response.status}`;
+  } else if (error.request) {
+    return "No response received from server";
+  }
+  return error.message || "Unknown error occurred";
+}
 
 const parseSoapDateTime = (dateTimeStr: string | null): string => {
   if (!dateTimeStr) return "";
   
   try {
     const date = new Date(dateTimeStr);
-    // Format to: 2025-06-01T10:00:00.000+02:00
     const pad = (num: number) => num.toString().padStart(2, '0');
     const ms = date.getMilliseconds().toString().padStart(3, '0');
     
-    // Get timezone offset in +/-HH:mm format
     const offset = -date.getTimezoneOffset();
     const offsetHours = Math.floor(Math.abs(offset) / 60);
     const offsetMinutes = Math.abs(offset) % 60;
@@ -277,81 +331,6 @@ const parseSoapDateTime = (dateTimeStr: string | null): string => {
   }
 };
 
-const parseCityElement = (cityElement: Element | undefined): City => {
-  if (!cityElement) {
-    return {
-      id: 0,
-      cityName: "",
-      country: ""
-    };
-  }
-  
-  return {
-    id: parseInt(getXmlValue(cityElement, "id", SERVICE_NS) || "0"),
-    cityName: getXmlValue(cityElement, "cityName", SERVICE_NS) || "",
-    country: getXmlValue(cityElement, "country", SERVICE_NS) || ""
-  };
-};
-
-const parseFlightsResponse = (soapBody: Element): Flight[] => {
-  const flights: Flight[] = [];
-  
-  // Szukaj odpowiedzi w różnych możliwych formach
-  const responseElements = [
-    ...Array.from(soapBody.getElementsByTagNameNS(SERVICE_NS, "searchFlightsResponse")),
-    ...Array.from(soapBody.getElementsByTagNameNS(SERVICE_NS, "getAllFlightsResponse"))
-  ];
-
-  for (const responseElement of responseElements) {
-    // Szukaj lotów w różnych możliwych formach
-    const flightElements = [
-      ...Array.from(responseElement.getElementsByTagNameNS(SERVICE_NS, "flights")),
-      ...Array.from(responseElement.getElementsByTagNameNS(SERVICE_NS, "flight"))
-    ];
-
-    for (const flightElement of flightElements) {
-      try {
-        flights.push(parseFlightElement(flightElement));
-      } catch (e) {
-        console.error('Error parsing flight element:', e);
-      }
-    }
-  }
-
-  return flights;
-};
-
-export const getReservationByCode = async (reservationCode: string): Promise<Reservation> => {
-  try {
-    return await callSoapService<Reservation>('getReservationByCode', {
-      reservationCode: reservationCode
-    });
-  } catch (error) {
-    console.error('Get reservation by code error:', error);
-    throw error;
-  }
-};
-
-const parseFlightElement = (flightElement: Element): Flight => {
-  const departureCityElement = flightElement.getElementsByTagNameNS(SERVICE_NS, "departureCity")[0] ||
-                              flightElement.getElementsByTagName("departureCity")[0];
-  
-  const arrivalCityElement = flightElement.getElementsByTagNameNS(SERVICE_NS, "arrivalCity")[0] ||
-                            flightElement.getElementsByTagName("arrivalCity")[0];
-
-  return {
-    id: parseInt(getXmlValue(flightElement, "id", SERVICE_NS) || "0"),
-    flightCode: getXmlValue(flightElement, "flightCode", SERVICE_NS) || "",
-    departureCity: parseCityElement(departureCityElement),
-    arrivalCity: parseCityElement(arrivalCityElement),
-    departureDatetime: parseSoapDateTime(getXmlValue(flightElement, "departureDatetime", SERVICE_NS)),
-    arrivalDatetime: parseSoapDateTime(getXmlValue(flightElement, "arrivalDatetime", SERVICE_NS)),
-    totalSeats: parseInt(getXmlValue(flightElement, "totalSeats", SERVICE_NS) || "0"),
-    availableSeats: parseInt(getXmlValue(flightElement, "availableSeats", SERVICE_NS) || "0"),
-    basePrice: parseFloat(getXmlValue(flightElement, "basePrice", SERVICE_NS) || "0")
-  };
-};
-
 
 export const getFlight = (id: number): Promise<Flight> => 
   callSoapService<Flight>('getFlight', { id: id.toString() });
@@ -363,7 +342,6 @@ export const searchFlights = async (params: {
   returnDate?: string;
 }): Promise<Flight[]> => {
   try {
-    // Formatowanie daty zgodnie z oczekiwaniami SOAP
     const formatDateForSoap = (dateString: string) => {
       const date = new Date(dateString);
       const offset = date.getTimezoneOffset();
@@ -400,7 +378,6 @@ export const createReservation = async (params: {
 }): Promise<Reservation> => {
   console.log("Creating reservation with params:", params);
   try {
-    // Format current date for SOAP request
     const reservationDate = new Date().toISOString();
     
     const result = await callSoapService<Reservation>('createReservation', {
@@ -409,9 +386,8 @@ export const createReservation = async (params: {
       passengerLastname: params.passengerLastname,
       passengerEmail: params.passengerEmail,
       seatsReserved: params.seatsReserved.toString(),
-      reservationDate: reservationDate // Add current date
+      reservationDate: reservationDate
     });
-    console.log("Reservation created successfully:", result);
     return result;
   } catch (error) {
     console.error('Create reservation error:', {
@@ -458,7 +434,6 @@ export const getReservationPdf = async (reservationCode: string): Promise<void> 
     });
 
     if (response.success && response.pdfData) {
-      // Konwertuj base64 na Blob
       const byteCharacters = atob(response.pdfData);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -467,7 +442,6 @@ export const getReservationPdf = async (reservationCode: string): Promise<void> 
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], {type: 'application/pdf'});
 
-      // Utwórz link do pobrania
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -475,7 +449,6 @@ export const getReservationPdf = async (reservationCode: string): Promise<void> 
       document.body.appendChild(a);
       a.click();
       
-      // Sprzątanie
       window.URL.revokeObjectURL(url);
       a.remove();
     } else {

@@ -1,5 +1,9 @@
 package org.example.flightreservationsystem.endpoint;
 
+import com.sun.istack.ByteArrayDataSource;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
+import jakarta.xml.ws.soap.MTOM;
 import org.example.flightreservationsystem.model.CityDTO;
 import org.example.flightreservationsystem.model.FlightDTO;
 import org.example.flightreservationsystem.model.ReservationDTO;
@@ -11,6 +15,7 @@ import org.springframework.ws.server.endpoint.annotation.Endpoint;
 import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
 import org.springframework.ws.server.endpoint.annotation.RequestPayload;
 import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
+import org.springframework.ws.soap.server.endpoint.annotation.SoapAction;
 
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -37,7 +42,6 @@ public class ReservationEndpoint {
     public CreateReservationResponse createReservation(@RequestPayload CreateReservationRequest request) {
         CreateReservationResponse response = new CreateReservationResponse();
 
-        // Pobierz pełne dane o locie
         FlightDTO flight = flightService.getFlightById(request.getFlightId());
         if (flight == null) {
             throw new RuntimeException("Flight not found with id: " + request.getFlightId());
@@ -65,9 +69,8 @@ public class ReservationEndpoint {
                 throw new RuntimeException("Reservation not found with code: " + request.getReservationCode());
             }
 
-            // Wymuś załadowanie powiązanego Flight jeśli jest LAZY
             if (reservation.getFlight() != null) {
-                reservation.getFlight().getId(); // To wymusza załadowanie jeśli jest LAZY
+                reservation.getFlight().getId();
             }
 
             response.setReservation(mapReservation(reservation));
@@ -96,6 +99,7 @@ public class ReservationEndpoint {
 
     @PayloadRoot(namespace = NAMESPACE_URI, localPart = "getReservationPdfRequest")
     @ResponsePayload
+    @MTOM(enabled = true, threshold = 1024)
     public GetReservationPdfResponse getReservationPdf(@RequestPayload GetReservationPdfRequest request) {
         GetReservationPdfResponse response = new GetReservationPdfResponse();
 
@@ -106,7 +110,11 @@ public class ReservationEndpoint {
             }
 
             byte[] pdfBytes = pdfGenerationService.generateReservationPdf(reservation);
-            response.setPdfData(pdfBytes);
+
+            DataSource dataSource = new ByteArrayDataSource(pdfBytes, "application/pdf");
+            DataHandler dataHandler = new DataHandler(dataSource);
+
+            response.setPdfData(dataHandler);
             response.setFileName("Reservation_" + reservation.getReservationCode() + ".pdf");
             response.setSuccess(true);
         } catch (Exception e) {
@@ -117,9 +125,8 @@ public class ReservationEndpoint {
         return response;
     }
 
-    private org.example.flightreservationsystem.wsdl.Reservation mapReservation(ReservationDTO reservation) {
-        org.example.flightreservationsystem.wsdl.Reservation soapReservation =
-                new org.example.flightreservationsystem.wsdl.Reservation();
+    private Reservation mapReservation(ReservationDTO reservation) {
+        Reservation soapReservation = new Reservation();
 
         soapReservation.setId(reservation.getId());
         soapReservation.setReservationCode(reservation.getReservationCode());
@@ -138,31 +145,27 @@ public class ReservationEndpoint {
             throw new RuntimeException("Error converting reservation date", e);
         }
 
-        // Map full flight details
         if (reservation.getFlight() != null) {
             FlightDTO flight = reservation.getFlight();
-            org.example.flightreservationsystem.wsdl.Flight soapFlight =
-                    new org.example.flightreservationsystem.wsdl.Flight();
+            Flight soapFlight = new Flight();
 
             soapFlight.setId(flight.getId());
             soapFlight.setFlightCode(flight.getFlightCode());
 
-            // Map departure city
             if (flight.getDepartureCity() != null) {
                 CityDTO departureCity = flight.getDepartureCity();
-                org.example.flightreservationsystem.wsdl.City soapDepartureCity =
-                        new org.example.flightreservationsystem.wsdl.City();
+                City soapDepartureCity = new City();
+
                 soapDepartureCity.setId(departureCity.getId());
                 soapDepartureCity.setCityName(departureCity.getCityName());
                 soapDepartureCity.setCountry(departureCity.getCountry());
                 soapFlight.setDepartureCity(soapDepartureCity);
             }
 
-            // Map arrival city
             if (flight.getArrivalCity() != null) {
                 CityDTO arrivalCity = flight.getArrivalCity();
-                org.example.flightreservationsystem.wsdl.City soapArrivalCity =
-                        new org.example.flightreservationsystem.wsdl.City();
+                City soapArrivalCity = new City();
+
                 soapArrivalCity.setId(arrivalCity.getId());
                 soapArrivalCity.setCityName(arrivalCity.getCityName());
                 soapArrivalCity.setCountry(arrivalCity.getCountry());
@@ -170,13 +173,11 @@ public class ReservationEndpoint {
             }
 
             try {
-                // Map departure datetime
                 if (flight.getDepartureDatetime() != null) {
                     XMLGregorianCalendar departureDatetime = convertToXmlGregorianCalendar(flight.getDepartureDatetime());
                     soapFlight.setDepartureDatetime(departureDatetime);
                 }
 
-                // Map arrival datetime
                 if (flight.getArrivalDatetime() != null) {
                     XMLGregorianCalendar arrivalDatetime = convertToXmlGregorianCalendar(flight.getArrivalDatetime());
                     soapFlight.setArrivalDatetime(arrivalDatetime);

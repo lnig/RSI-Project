@@ -37,48 +37,6 @@ const FlightCard: React.FC<FlightCardProps> = ({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [reservationDetails, setReservationDetails] = useState<Reservation | null>(null);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const extractDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-Us', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    })
-  }
-
-  const extractTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-Us', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
-  const calculateFlightDuration = () => {
-    const departure = new Date(departureDatetime);
-    const arrival = new Date(arrivalDatetime);
-    const durationMs = arrival.getTime() - departure.getTime();
-    
-    const hours = Math.floor(durationMs / (1000 * 60 * 60));
-    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `${hours}h ${minutes}m`;
-  }
-
-  const handleBookFlight = () => {
-    setIsBookingModalOpen(true);
-  };
-
   const handleModalClose = () => {
     setIsBookingModalOpen(false);
     setPassengerCount(1);
@@ -108,7 +66,6 @@ const FlightCard: React.FC<FlightCardProps> = ({
       seats: false
     });
 
-    // Validate form
     let isValid = true;
     const newErrors = { ...errors };
 
@@ -140,7 +97,6 @@ const FlightCard: React.FC<FlightCardProps> = ({
     }
 
     try {
-      // Create the reservation
       const reservation = await createReservation({
         flightId: id,
         passengerFirstname: firstName,
@@ -149,7 +105,6 @@ const FlightCard: React.FC<FlightCardProps> = ({
         seatsReserved: passengerCount
       });
 
-      // Set reservation details and show success modal
       setReservationDetails(reservation);
       setShowSuccessModal(true);
       handleModalClose();
@@ -183,6 +138,38 @@ const FlightCard: React.FC<FlightCardProps> = ({
     setEmail(String(email));
   }
 
+  const handleBookFlight = () => {
+    setIsBookingModalOpen(true);
+  };
+
+  const extractDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-Us', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+  }
+
+  const extractTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-Us', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const calculateFlightDuration = () => {
+    const departure = new Date(departureDatetime);
+    const arrival = new Date(arrivalDatetime);
+    const durationMs = arrival.getTime() - departure.getTime();
+    
+    const hours = Math.floor(durationMs / (1000 * 60 * 60));
+    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `${hours}h ${minutes}m`;
+  }
+
   return (
     <div className="w-full flex flex-col h-fit p-4 border rounded border-[#DEE1E5]" key={id}>
       <div className="flex items-center">
@@ -211,13 +198,13 @@ const FlightCard: React.FC<FlightCardProps> = ({
           <div className="w-2 h-2 rounded-full bg-[#EA4B60]"/>
         </div>
 
-        <div className="flex flex-col gap-1 w-fit">
-          <div className="flex items-center gap-2 w-32">
-              <PlaneLanding size={16} color="#565D6D"/>
-              <p className="text-[#565D6D] text-base font-medium mt-[2px] w-32">{arrivalCity.cityName}</p>
+        <div className="flex flex-col gap-1 w-fit text-right">
+          <div className="flex flex-row-reverse items-center gap-2 w-32">
+            <p className="text-[#565D6D] text-base font-medium mt-[2px]">{arrivalCity.cityName}</p>
+            <PlaneLanding size={16} color="#565D6D"/>
           </div>
           <p className="text-xl font-bold text-[#16191E] w-32">{extractTime(arrivalDatetime)}</p>
-          <div className="flex items-center gap-2 w-32">
+          <div className="flex items-center gap-2 w-32 justify-end">
             <Calendar1 size={14} color="#8E94A0"/>
             <p className="text-[#8E94A0] text-sm">{extractDate(departureDatetime)}</p>
           </div>
@@ -440,7 +427,6 @@ const FlightCard: React.FC<FlightCardProps> = ({
                 type="primary"
                 onClick={handleSubmitBooking}
                 disabled={selectedSeats.length !== passengerCount || isBooking}
-
               />
             </div>
           </div>

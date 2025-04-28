@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns:tns="http://example.org/flightreservationsystem"
+           xmlns:xmime="http://www.w3.org/2005/05/xmlmime"
            targetNamespace="http://example.org/flightreservationsystem"
            elementFormDefault="qualified">
 
@@ -161,7 +162,8 @@
             <xs:sequence>
                 <xs:element name="success" type="xs:boolean"/>
                 <xs:element name="message" type="xs:string" minOccurs="0"/>
-                <xs:element name="pdfData" type="xs:base64Binary" minOccurs="0"/>
+                <xs:element name="pdfData" type="xs:base64Binary"
+                            xmime:expectedContentTypes="application/pdf"/>
                 <xs:element name="fileName" type="xs:string" minOccurs="0"/>
             </xs:sequence>
         </xs:complexType>

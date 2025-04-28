@@ -17,7 +17,6 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
   onChange,
   className = '',
 }) => {
-  // Zabezpieczenie przed min > max
   const [actualMin, actualMax] = min > max ? [max, min] : [min, max];
   
   const initialValues = [
@@ -32,7 +31,7 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
   const getPercentage = useCallback(
     (value: number) => {
       const percentage = ((value - actualMin) / (actualMax - actualMin)) * 100;
-      return Math.min(100, Math.max(0, percentage)); // Ograniczenie do 0-100%
+      return Math.min(100, Math.max(0, percentage));
     },
     [actualMin, actualMax]
   );
@@ -45,7 +44,7 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
       const percentage = (position / sliderWidth) * 100;
       const rawValue = actualMin + (percentage / 100) * (actualMax - actualMin);
       const steppedValue = Math.round((rawValue - actualMin) / step) * step + actualMin;
-      return Math.min(actualMax, Math.max(actualMin, steppedValue)); // Ograniczenie wartości
+      return Math.min(actualMax, Math.max(actualMin, steppedValue));
     },
     [actualMin, actualMax, step]
   );

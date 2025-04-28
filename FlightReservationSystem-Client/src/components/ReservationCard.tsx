@@ -1,7 +1,8 @@
-import { PlaneTakeoff, PlaneLanding, Calendar1, Plane, KeyRound, Armchair, User, Mail, Ticket } from 'lucide-react';
+import { PlaneTakeoff, PlaneLanding, Calendar1, Plane, KeyRound, Armchair, User, Mail, Ticket, Download, DownloadIcon } from 'lucide-react';
 import Button from './Button';
 import Tag from './Tag';
-import { callSoapService, getReservationPdf } from '../api/flightSoapClient';
+import { getReservationPdf } from '../api/flightSoapClient';
+import { toast } from 'react-toastify';
 
 interface ReservationCardProps {
   id: number;
@@ -44,15 +45,31 @@ const ReservationCard = ({
   flight,
   onCancel
 }: ReservationCardProps) => {
-  
-  const extractTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const handleCancel = async () => {
+    if (onCancel) {
+      try {
+        const response = await onCancel(reservationCode);
+        if (response.success) {
+          toast.success('Reservation canceled successfully');
+        } else {
+          toast.error(`Failed to cancel reservation: ${response.message}`);
+        }
+      } catch (error) {
+        console.error('Cancel error:', error);
+        toast.error('Error canceling reservation');
+      }
+    }
   };
 
-  const extractDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+  const handleDownloadPdf = async () => {
+    try {
+      await getReservationPdf(reservationCode);
+      toast.success('PDF download started');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download reservation PDF');
+    }
   };
 
   const calculateFlightDuration = () => {
@@ -66,53 +83,34 @@ const ReservationCard = ({
     return `${hours}h ${minutes}m`;
   };
 
-  const handleCancel = async () => {
-    if (onCancel) {
-      try {
-        const response = await onCancel(reservationCode);
-        if (response.success) {
-          // Show success message
-          alert('Reservation canceled successfully');
-        } else {
-          // Show error message
-          alert(`Failed to cancel reservation: ${response.message}`);
-        }
-      } catch (error) {
-        console.error('Cancel error:', error);
-        alert('Error canceling reservation');
-      }
-    }
+  const extractTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const extractDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   return (
     <div className="w-full flex flex-col h-fit p-4 border rounded border-[#DEE1E5]" key={id}>
-      {/* Passenger Info Section */}
-      <div className="flex items-start justify-between mb-4 pb-4 border-b border-[#DEE1E5]">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <User size={16} color="#565D6D"/>
-            <p className="text-[#16191E] font-medium">
-              {passengerFirstname} {passengerLastname}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Mail size={16} color="#565D6D"/>
-            <p className="text-[#565D6D] text-sm">{passengerEmail}</p>
-          </div>
+      <div className='flex justify-between items-center mb-4'>
+        <div className="flex items-center gap-2">
+          <Ticket size={24} color="#313642"/>
+          <p className="text-[#313642] font-medium text-xl">{reservationCode}</p>
+          <p className="text-[#8E94A0] text-sm ml-4">Booked on {extractDate(reservationDate)}</p>
         </div>
-        
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
-            <Ticket size={16} color="#565D6D"/>
-            <p className="text-[#565D6D] font-medium">{reservationCode}</p>
-          </div>
-          <p className="text-[#8E94A0] text-sm">
-            Booked on {extractDate(reservationDate)}
-          </p>
-        </div>
-      </div>
 
-      {/* Flight Info Section (similar to FlightCard) */}
+        <Button 
+          width="w-36"
+          size="m"
+          type="icon"
+          Icon={DownloadIcon}
+          onClick={handleDownloadPdf}
+        />
+      </div>
+     
       <div className="flex items-center">
         <div className="flex flex-col gap-1 w-fit">
           <div className="flex items-center gap-2 w-32">
@@ -147,18 +145,18 @@ const ReservationCard = ({
           <div className="w-2 h-2 rounded-full bg-[#EA4B60]"/>
         </div>
 
-        <div className="flex flex-col gap-1 w-fit">
-          <div className="flex items-center gap-2 w-32">
-            <PlaneLanding size={16} color="#565D6D"/>
-            <p className="text-[#565D6D] text-base font-medium mt-[2px] w-32">
+        <div className="flex flex-col gap-1 w-fit text-right">
+          <div className="flex flex-row-reverse items-center gap-2 w-32">
+            <p className="text-[#565D6D] text-base font-medium mt-[2px]">
               {flight.arrivalCity.cityName}
             </p>
+            <PlaneLanding size={16} color="#565D6D" />
           </div>
           <p className="text-xl font-bold text-[#16191E] w-32">
             {extractTime(flight.arrivalDatetime)}
           </p>
-          <div className="flex items-center gap-2 w-32">
-            <Calendar1 size={14} color="#8E94A0"/>
+          <div className="flex items-center gap-2 w-32 justify-end">
+            <Calendar1 size={14} color="#8E94A0" />
             <p className="text-[#8E94A0] text-sm">
               {extractDate(flight.arrivalDatetime)}
             </p>
@@ -166,7 +164,6 @@ const ReservationCard = ({
         </div>
       </div>
 
-      {/* Reservation Details Section */}
       <div className="flex justify-between items-center mt-4 gap-8">
         <div className="flex items-center gap-4">
           <Tag text={flight.flightCode} Icon={KeyRound} size="s"/>
@@ -177,21 +174,32 @@ const ReservationCard = ({
           <p className="text-[#16191E] font-bold text-2xl">
             {totalPrice.toFixed(2)} $
           </p>
-        
-          <Button 
-            width="w-36"
-            size="m"
-            text="Cancel Booking"
-            type="secondary"
-            onClick={handleCancel}
-          />
         </div>
+      </div>
+
+      <div className='flex items-end justify-between'>
+        <div className='flex flex-col'>
+          <div className="flex items-center mt-8 gap-2">
+            <User size={24} color="#16191E"/>
+            <p className="text-[#16191E] font-medium text-xl">
+              {passengerFirstname} {passengerLastname}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between mt-1">
+            <div className="flex items-center gap-2 ml-[2px]">
+              <Mail size={20} color="#565D6D"/>
+              <p className="text-[#565D6D] ml-1">{passengerEmail}</p>
+            </div>
+          </div>
+        </div>
+
         <Button 
-            width="w-36"
-            size="m"
-            text="Download PDF"
-            type="secondary"
-            onClick={() => getReservationPdf(reservationCode)}
+          width="w-36"
+          size="m"
+          text="Cancel Booking"
+          type="secondary"
+          onClick={handleCancel}
         />
       </div>
     </div>

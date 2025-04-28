@@ -45,11 +45,9 @@ const Input: React.FC<InputProps> = ({
     const newValue = e.target.value
     
     if (type === 'number') {
-      // Dla typu number, konwertujemy na number jeśli to możliwe
       if (newValue === '') {
         onValueChange('')
       } else if (/^[0-9]*\.?[0-9]*$/.test(newValue)) {
-        // Konwertujemy na number tylko jeśli wartość jest pełną liczbą
         const numValue = newValue.includes('.') ? parseFloat(newValue) : parseInt(newValue)
         onValueChange(isNaN(numValue) ? '' : numValue)
       }
@@ -59,9 +57,8 @@ const Input: React.FC<InputProps> = ({
   }
 
   const displayValue = value === null ? '' : value.toString()
-
   const currentBorderColor = isActive || isFocused ? borderColorFocusActive : borderColor
-
+  
   return (
     <div
       className={`

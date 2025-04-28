@@ -34,11 +34,6 @@ public class FlightServiceImpl implements FlightService {
     }
 
     @Override
-    public List<FlightDTO> getAllFlights() {
-        return flightRepository.findAll();
-    }
-
-    @Override
     public FlightDTO updateFlight(Integer id, FlightDTO flight) {
         FlightDTO existingFlight = getFlightById(id);
         existingFlight.setFlightCode(flight.getFlightCode());
