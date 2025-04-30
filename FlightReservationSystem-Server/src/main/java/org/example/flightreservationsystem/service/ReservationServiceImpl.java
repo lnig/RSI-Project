@@ -18,14 +18,11 @@ public class ReservationServiceImpl implements ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final FlightRepository flightRepository;
-    private final FlightService flightService;
 
     public ReservationServiceImpl(ReservationRepository reservationRepository,
-                                  FlightRepository flightRepository,
-                                  FlightService flightService) {
+                                  FlightRepository flightRepository) {
         this.reservationRepository = reservationRepository;
         this.flightRepository = flightRepository;
-        this.flightService = flightService;
     }
 
     @Override
@@ -68,32 +65,6 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public ReservationDTO getReservationByCode(String reservationCode) {
         return reservationRepository.findByReservationCode(reservationCode);
-    }
-
-    @Override
-    public List<ReservationDTO> getAllReservations() {
-        return reservationRepository.findAll();
-    }
-
-    @Override
-    public ReservationDTO updateReservation(Integer id, ReservationDTO reservation) {
-        ReservationDTO existingReservation = getReservationById(id);
-
-        int seatDifference = reservation.getSeatsReserved() - existingReservation.getSeatsReserved();
-        if (seatDifference != 0) {
-            if (!flightService.checkSeatAvailability(reservation.getFlight().getId(), seatDifference)) {
-                throw new IllegalStateException("Not enough seats available for update");
-            }
-            flightService.updateAvailableSeats(reservation.getFlight().getId(), -seatDifference);
-        }
-
-        existingReservation.setPassengerFirstname(reservation.getPassengerFirstname());
-        existingReservation.setPassengerLastname(reservation.getPassengerLastname());
-        existingReservation.setPassengerEmail(reservation.getPassengerEmail());
-        existingReservation.setSeatsReserved(reservation.getSeatsReserved());
-        existingReservation.setTotalPrice(calculateTotalPrice(reservation.getFlight().getId(), reservation.getSeatsReserved()));
-
-        return reservationRepository.save(existingReservation);
     }
 
     @Override

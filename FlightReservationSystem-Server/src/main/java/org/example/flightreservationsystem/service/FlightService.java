@@ -6,10 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface FlightService {
-    FlightDTO addFlight(FlightDTO flight);
     FlightDTO getFlightById(Integer id);
-    FlightDTO updateFlight(Integer id, FlightDTO flight);
-    void deleteFlight(Integer id);
     List<FlightDTO> findFlightsBetweenCities(Integer departureCityId, Integer arrivalCityId,
                                              LocalDateTime departureDate, LocalDateTime returnDate);
     boolean checkSeatAvailability(Integer flightId, Integer seatsRequested);

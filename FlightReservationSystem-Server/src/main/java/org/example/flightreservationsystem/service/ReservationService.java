@@ -9,8 +9,6 @@ public interface ReservationService {
     ReservationDTO createReservation(ReservationDTO reservation);
     ReservationDTO getReservationById(Integer id);
     ReservationDTO getReservationByCode(String reservationCode);
-    List<ReservationDTO> getAllReservations();
-    ReservationDTO updateReservation(Integer id, ReservationDTO reservation);
     void cancelReservation(String reservationCode);
     BigDecimal calculateTotalPrice(Integer flightId, Integer seats);
 }

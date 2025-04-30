@@ -15,12 +15,6 @@ public interface FlightRepository extends JpaRepository<FlightDTO, Integer> {
             "f.departureDatetime >= :startDate AND " +
             "f.departureDatetime < :endDate AND " +
             "f.availableSeats >= :requiredSeats")
-    List<FlightDTO> findAvailableFlights(
-            @Param("departureCity") String departureCity,
-            @Param("arrivalCity") String arrivalCity,
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate,
-            @Param("requiredSeats") int requiredSeats);
 
     List<FlightDTO> findByDepartureCityIdAndArrivalCityId(Integer departureCityId, Integer arrivalCityId);
 

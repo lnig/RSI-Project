@@ -35,9 +35,6 @@ export const callSoapService = async <T>(
       responseType: 'text'
     });
 
-    console.log("SOAP Request:", soapRequest);
-    console.log("SOAP Response:", response.data);
-
     const xmlDoc = parseXmlResponse(response.data, SERVICE_NS);
     
     const soapBody = xmlDoc.documentElement;
@@ -378,15 +375,13 @@ export const createReservation = async (params: {
 }): Promise<Reservation> => {
   console.log("Creating reservation with params:", params);
   try {
-    const reservationDate = new Date().toISOString();
-    
+
     const result = await callSoapService<Reservation>('createReservation', {
       flightId: params.flightId.toString(),
       passengerFirstname: params.passengerFirstname,
       passengerLastname: params.passengerLastname,
       passengerEmail: params.passengerEmail,
       seatsReserved: params.seatsReserved.toString(),
-      reservationDate: reservationDate
     });
     return result;
   } catch (error) {

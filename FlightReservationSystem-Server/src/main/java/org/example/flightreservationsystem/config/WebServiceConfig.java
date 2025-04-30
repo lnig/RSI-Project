@@ -49,16 +49,13 @@ public class WebServiceConfig extends WsConfigurerAdapter {
         PayloadValidatingInterceptor interceptor = new PayloadValidatingInterceptor();
         interceptor.setXsdSchema(flightsSchema());
         interceptor.setValidateRequest(true);
-        interceptor.setValidateResponse(false); // Można ustawić na true jeśli potrzebujesz
+        interceptor.setValidateResponse(false);
         return interceptor;
     }
 
     @Override
     public void addInterceptors(List<EndpointInterceptor> interceptors) {
-        // Rejestracja handlera logującego
         interceptors.add(new LoggingHandler());
-
-        // Opcjonalna walidacja XML (jeśli potrzebna)
         interceptors.add(payloadValidatingInterceptor());
     }
 }

@@ -19,40 +19,9 @@ public class FlightServiceImpl implements FlightService {
     }
 
     @Override
-    public FlightDTO addFlight(FlightDTO flight) {
-        if (flight.getArrivalDatetime().isBefore(flight.getDepartureDatetime())) {
-            throw new IllegalArgumentException("Arrival date cannot be before departure date");
-        }
-        flight.setAvailableSeats(flight.getTotalSeats());
-        return flightRepository.save(flight);
-    }
-
-    @Override
     public FlightDTO getFlightById(Integer id) {
         return flightRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Flight not found with id: " + id));
-    }
-
-    @Override
-    public FlightDTO updateFlight(Integer id, FlightDTO flight) {
-        FlightDTO existingFlight = getFlightById(id);
-        existingFlight.setFlightCode(flight.getFlightCode());
-        existingFlight.setDepartureCity(flight.getDepartureCity());
-        existingFlight.setArrivalCity(flight.getArrivalCity());
-        existingFlight.setDepartureDatetime(flight.getDepartureDatetime());
-        existingFlight.setArrivalDatetime(flight.getArrivalDatetime());
-        existingFlight.setBasePrice(flight.getBasePrice());
-
-        int seatDifference = flight.getTotalSeats() - existingFlight.getTotalSeats();
-        existingFlight.setTotalSeats(flight.getTotalSeats());
-        existingFlight.setAvailableSeats(existingFlight.getAvailableSeats() + seatDifference);
-
-        return flightRepository.save(existingFlight);
-    }
-
-    @Override
-    public void deleteFlight(Integer id) {
-        flightRepository.deleteById(id);
     }
 
     @Override

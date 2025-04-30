@@ -2,7 +2,6 @@ package org.example.flightreservationsystem.handler;
 
 import org.springframework.ws.WebServiceMessage;
 import org.springframework.ws.context.MessageContext;
-import org.springframework.ws.soap.SoapMessage;
 import java.io.ByteArrayOutputStream;
 
 public class LoggingHandler extends AbstractSoapHandler {

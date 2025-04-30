@@ -75,7 +75,6 @@ public class FlightEndpoint {
             );
 
             flights.forEach(flight -> response.getFlights().add(convertToWsdlFlight(flight)));
-
         } catch (Exception e) {
             throw new RuntimeException("Error searching flights: " + e.getMessage(), e);
         }
